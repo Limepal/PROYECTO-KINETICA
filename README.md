@@ -103,8 +103,10 @@ erDiagram
     SIGN {
         bigint id PK
         string label
+        string normalizedLabel
         string mediaRef
         string locale
+        boolean active
     }
 
     TRANSLATION_REQUEST {
@@ -138,7 +140,7 @@ erDiagram
 - **User**: Usuario del sistema (id, email, passwordHash)
 - **Role**: Rol (id, name) -> USER, ADMIN
 - **UserRole**: Relacion usuario-rol
-- **Sign**: Seña (id, label, mediaRef, locale)
+- **Sign**: Seña del catalogo (id, label, normalizedLabel, mediaRef, locale, active)
 - **TranslationRequest**: Solicitud de traduccion (id, userId, direction, status, sourceText)
 - **TranslationResult**: Resultado (id, request_id, textOutput, signOutputRef, confidence)
 - **OutboxEvent**: Evento outbox para async (id, status, retryCount, maxRetries, nextRetryAt)
