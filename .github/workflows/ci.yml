@@ -35,11 +35,19 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           APP_SECURITY_JWT_SECRET: ${{ secrets.APP_SECURITY_JWT_SECRET }}
         run: |
-          # Write secrets to .env for Spring Boot
-          echo "POSTGRES_DB=$POSTGRES_DB" > .env
-          echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME" >> .env
-          echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD" >> .env
-          echo "APP_SECURITY_JWT_SECRET=$APP_SECURITY_JWT_SECRET" >> .env
+          # Write secrets to .env for Spring Boot (including default port)
+          cat > .env <<EOF
+          POSTGRES_DB=$POSTGRES_DB
+          POSTGRES_PORT=5432
+          SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME
+          SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD
+          APP_SECURITY_JWT_SECRET=$APP_SECURITY_JWT_SECRET
+          EOF
+          
+          # Export variables to shell environment for Maven/Spring
+          set -a
+          source .env
+          set +a
           
           # Start PostgreSQL and wait for it to be ready
           docker compose up -d
