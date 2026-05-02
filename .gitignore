@@ -34,3 +34,8 @@ build/
 
 # Local environment variables
 .env
+
+AGENTS.md
+
+# Local planning docs
+PROJECT_MVP_DECISIONS.md
