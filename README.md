@@ -73,6 +73,83 @@ GitHub Actions corre los tests automaticamente en pushes a main/develop y PRs.
 - `GET /users` - Listar usuarios (solo ADMIN)
 - `GET /roles` - Listar roles (solo ADMIN)
 
+## Diagrama Entidad Relacion
+
+```mermaid
+erDiagram
+    USER ||--o{ USER_ROLE : has
+    ROLE ||--o{ USER_ROLE : assigned_to
+    USER ||--o{ TRANSLATION_REQUEST : creates
+    TRANSLATION_REQUEST ||--o| TRANSLATION_RESULT : produces
+    TRANSLATION_REQUEST ||--o{ OUTBOX_EVENT : triggers
+
+    USER {
+        bigint id PK
+        string email
+        string passwordHash
+    }
+
+    ROLE {
+        bigint id PK
+        string name
+    }
+
+    USER_ROLE {
+        bigint id PK
+        bigint user_id FK
+        bigint role_id FK
+    }
+
+    SIGN {
+        bigint id PK
+        string label
+        string mediaRef
+        string locale
+    }
+
+    TRANSLATION_REQUEST {
+        bigint id PK
+        bigint userId FK
+        string direction
+        string status
+        text sourceText
+    }
+
+    TRANSLATION_RESULT {
+        bigint id PK
+        bigint request_id FK
+        text textOutput
+        string signOutputRef
+        double confidence
+    }
+
+    OUTBOX_EVENT {
+        bigint id PK
+        string eventType
+        string status
+        int retryCount
+        int maxRetries
+        timestamp nextRetryAt
+    }
+```
+
+## Descripcion de Entidades
+
+- **User**: Usuario del sistema (id, email, passwordHash)
+- **Role**: Rol (id, name) -> USER, ADMIN
+- **UserRole**: Relacion usuario-rol
+- **Sign**: Seña (id, label, mediaRef, locale)
+- **TranslationRequest**: Solicitud de traduccion (id, userId, direction, status, sourceText)
+- **TranslationResult**: Resultado (id, request_id, textOutput, signOutputRef, confidence)
+- **OutboxEvent**: Evento outbox para async (id, status, retryCount, maxRetries, nextRetryAt)
+
+## Relaciones
+
+- User 1:N UserRole N:1 Role
+- User 1:N TranslationRequest
+- TranslationRequest 1:1 TranslationResult
+- TranslationRequest 1:N OutboxEvent
+
 ## Roles
 
 - `USER` - Usuario regular
