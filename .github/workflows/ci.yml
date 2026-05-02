@@ -35,9 +35,19 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           APP_SECURITY_JWT_SECRET: ${{ secrets.APP_SECURITY_JWT_SECRET }}
         run: |
-          cp .env.example .env || true
+          # Write secrets to .env for Spring Boot
+          echo "POSTGRES_DB=$POSTGRES_DB" > .env
+          echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME" >> .env
+          echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD" >> .env
+          echo "APP_SECURITY_JWT_SECRET=$APP_SECURITY_JWT_SECRET" >> .env
+          
+          # Start PostgreSQL and wait for it to be ready
           docker compose up -d
-          sleep 5
+          for i in {1..30}; do
+            docker compose exec -T db pg_isready -U postgres && break
+            sleep 2
+          done
+          
           ./mvnw clean test
 
       - name: Upload test reports
