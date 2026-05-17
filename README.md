@@ -70,6 +70,8 @@ GitHub Actions corre los tests automaticamente en pushes a main/develop y PRs.
 - `POST /signs` - Crear señas (solo ADMIN)
 - `POST /translations` - Crear traduccion
 - `GET /translations` - Listar traducciones
+- `POST /translations/{requestId}/media/upload` - Subir media gestionada por backend
+- `GET /kpis/translations?days=7` - KPIs de traduccion (solo ADMIN)
 - `GET /users` - Listar usuarios (solo ADMIN)
 - `GET /roles` - Listar roles (solo ADMIN)
 

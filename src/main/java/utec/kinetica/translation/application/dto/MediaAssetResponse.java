@@ -2,6 +2,8 @@ package utec.kinetica.translation.application.dto;
 
 import utec.kinetica.translation.domain.MediaAssetKind;
 
+import java.time.Instant;
+
 public record MediaAssetResponse(
         Long id,
         Long requestId,
@@ -9,6 +11,8 @@ public record MediaAssetResponse(
         String storageUrl,
         String mimeType,
         Long durationMs,
-        Long sizeBytes
+        Long sizeBytes,
+        Instant createdAt,
+        Instant expiresAt
 ) {
 }
