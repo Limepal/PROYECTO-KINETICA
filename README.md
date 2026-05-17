@@ -141,8 +141,12 @@ erDiagram
         bigint id PK
         bigint request_id FK
         text textOutput
+        text glossOutput
         string signOutputRef
         double confidence
+        bigint latencyMs
+        string modelVersion
+        string warning
     }
 
     OUTBOX_EVENT {
@@ -162,7 +166,7 @@ erDiagram
 - **UserRole**: Relacion usuario-rol
 - **Sign**: Seña del catalogo (id, label, normalizedLabel, mediaRef, locale, active)
 - **TranslationRequest**: Solicitud de traduccion (id, userId, direction, status, sourceText)
-- **TranslationResult**: Resultado (id, request_id, textOutput, signOutputRef, confidence)
+- **TranslationResult**: Resultado (id, request_id, textOutput, glossOutput, signOutputRef, confidence, latencyMs, modelVersion, warning)
 - **OutboxEvent**: Evento outbox para async (id, status, retryCount, maxRetries, nextRetryAt)
 
 ## Relaciones
