@@ -861,6 +861,10 @@ components:
           type: string
           enum: [SIGN_TO_TEXT, TEXT_TO_SIGN]
         textOutput: { type: string, nullable: true }
+        glossOutput:
+          type: string
+          nullable: true
+          description: Intermediate LSP gloss used in the translation pipeline.
         signOutputRef:
           type: string
           nullable: true

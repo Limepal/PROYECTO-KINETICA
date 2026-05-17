@@ -77,6 +77,22 @@ GitHub Actions corre los tests automaticamente en pushes a main/develop y PRs.
 - `GET /users` - Listar usuarios (solo ADMIN)
 - `GET /roles` - Listar roles (solo ADMIN)
 
+## Glosa como Intermediario (Pipeline)
+
+- **TEXT_TO_SIGN**: Español natural -> **Glosa LSP** -> IA de señas
+- **SIGN_TO_TEXT**: IA (glosa/candidata) -> **Glosa LSP** -> Español natural
+
+El backend aplica esta lógica en `TranslationRequestedEventHandler` y expone `glossOutput` en `TranslationResponse`.
+
+### System prompts activos (GitHub Models)
+
+Los prompts de ambos sentidos están implementados en:
+
+- `GithubModelsGlossClient.SYSTEM_ES_TO_GLOSS`
+- `GithubModelsGlossClient.SYSTEM_GLOSS_TO_ES`
+
+Ambos fuerzan salida JSON estructurada para reducir variabilidad del modelo.
+
 ## Diagrama Entidad Relacion
 
 ```mermaid

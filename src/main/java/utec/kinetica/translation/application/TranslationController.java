@@ -92,6 +92,7 @@ public class TranslationController {
                 request.getStatus(),
                 request.getDirection(),
                 result != null ? result.getTextOutput() : null,
+                result != null ? result.getGlossOutput() : null,
                 result != null ? result.getSignOutputRef() : null,
                 result != null ? result.getConfidence() : null,
                 result != null ? result.getWarning() : null,

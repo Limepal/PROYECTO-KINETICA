@@ -29,12 +29,14 @@ class OutboxRetryFlowTest {
         TranslationResultRepository resultRepository = mock(TranslationResultRepository.class);
         OutboxEventRepository outboxEventRepository = mock(OutboxEventRepository.class);
         AiInferenceClient aiInferenceClient = mock(AiInferenceClient.class);
+        GlossConversionService glossConversionService = mock(GlossConversionService.class);
 
         TranslationRequestedEventHandler handler = new TranslationRequestedEventHandler(
                 requestRepository,
                 resultRepository,
                 outboxEventRepository,
-                aiInferenceClient
+                aiInferenceClient,
+                glossConversionService
         );
 
         OutboxEvent outboxEvent = new OutboxEvent();

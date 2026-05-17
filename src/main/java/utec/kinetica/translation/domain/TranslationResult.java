@@ -27,6 +27,9 @@ public class TranslationResult {
     @Column(columnDefinition = "TEXT")
     private String textOutput;
 
+    @Column(columnDefinition = "TEXT")
+    private String glossOutput;
+
     private String signOutputRef;
 
     private Double confidence;
@@ -52,6 +55,8 @@ public class TranslationResult {
     public void setRequest(TranslationRequest request) { this.request = request; }
     public String getTextOutput() { return textOutput; }
     public void setTextOutput(String textOutput) { this.textOutput = textOutput; }
+    public String getGlossOutput() { return glossOutput; }
+    public void setGlossOutput(String glossOutput) { this.glossOutput = glossOutput; }
     public String getSignOutputRef() { return signOutputRef; }
     public void setSignOutputRef(String signOutputRef) { this.signOutputRef = signOutputRef; }
     public Double getConfidence() { return confidence; }

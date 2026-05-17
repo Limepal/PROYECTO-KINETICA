@@ -10,6 +10,7 @@ public record TranslationResponse(
         TranslationStatus status,
         TranslationDirection direction,
         String textOutput,
+        String glossOutput,
         String signOutputRef,
         Double confidence,
         String warning,
