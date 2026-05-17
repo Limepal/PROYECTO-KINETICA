@@ -29,6 +29,7 @@ class AuthServiceTest {
         RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         JwtService jwtService = mock(JwtService.class);
+        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
 
         AuthService service = new AuthService(
                 userRepository,
@@ -36,7 +37,8 @@ class AuthServiceTest {
                 userRoleRepository,
                 refreshTokenRepository,
                 passwordEncoder,
-                jwtService
+                jwtService,
+                registrationNotifier
         );
 
         when(userRepository.findByEmail("a@b.com")).thenReturn(Optional.empty());
@@ -55,6 +57,45 @@ class AuthServiceTest {
         assertEquals(1L, response.userId());
         assertEquals("jwt", response.accessToken());
         assertEquals("Bearer", response.tokenType());
+        verify(registrationNotifier).notifyWelcome("a@b.com");
+    }
+
+    @Test
+    void registerShouldNotFailWhenWelcomeEmailFails() {
+        UserRepository userRepository = mock(UserRepository.class);
+        RoleRepository roleRepository = mock(RoleRepository.class);
+        UserRoleRepository userRoleRepository = mock(UserRoleRepository.class);
+        RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtService jwtService = mock(JwtService.class);
+        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
+
+        AuthService service = new AuthService(
+                userRepository,
+                roleRepository,
+                userRoleRepository,
+                refreshTokenRepository,
+                passwordEncoder,
+                jwtService,
+                registrationNotifier
+        );
+
+        when(userRepository.findByEmail("b@c.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("secret")).thenReturn("hash");
+        Role role = new Role();
+        role.setName(RoleName.USER);
+        when(roleRepository.findByName(RoleName.USER)).thenReturn(Optional.of(role));
+        User saved = new User();
+        saved.setId(2L);
+        saved.setEmail("b@c.com");
+        when(userRepository.save(any(User.class))).thenReturn(saved);
+        when(jwtService.generateToken(any(User.class), any())).thenReturn("jwt-2");
+        org.mockito.Mockito.doThrow(new RuntimeException("smtp failed")).when(registrationNotifier).notifyWelcome("b@c.com");
+
+        AuthResponse response = service.register("b@c.com", "secret");
+
+        assertEquals(2L, response.userId());
+        assertEquals("jwt-2", response.accessToken());
     }
 
     @Test
@@ -65,6 +106,7 @@ class AuthServiceTest {
         RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         JwtService jwtService = mock(JwtService.class);
+        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
 
         AuthService service = new AuthService(
                 userRepository,
@@ -72,7 +114,8 @@ class AuthServiceTest {
                 userRoleRepository,
                 refreshTokenRepository,
                 passwordEncoder,
-                jwtService
+                jwtService,
+                registrationNotifier
         );
 
         User user = new User();
@@ -104,6 +147,7 @@ class AuthServiceTest {
         RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         JwtService jwtService = mock(JwtService.class);
+        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
 
         AuthService service = new AuthService(
                 userRepository,
@@ -111,7 +155,8 @@ class AuthServiceTest {
                 userRoleRepository,
                 refreshTokenRepository,
                 passwordEncoder,
-                jwtService
+                jwtService,
+                registrationNotifier
         );
 
         RefreshToken token = new RefreshToken();

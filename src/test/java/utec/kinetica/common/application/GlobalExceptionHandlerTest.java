@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailSendException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -39,6 +40,16 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("INTERNAL_ERROR", response.getBody().code());
         assertEquals("Unexpected server error.", response.getBody().message());
+        assertFalse(response.getBody().details().isEmpty());
+    }
+
+    @Test
+    void shouldReturnServiceUnavailableForMailErrors() {
+        ResponseEntity<ApiErrorResponse> response = handler.handleMailFailure(new MailSendException("smtp down"));
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals("EMAIL_SERVICE_ERROR", response.getBody().code());
+        assertEquals("Email service is currently unavailable.", response.getBody().message());
         assertFalse(response.getBody().details().isEmpty());
     }
 }

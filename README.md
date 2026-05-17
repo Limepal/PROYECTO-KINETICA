@@ -29,6 +29,14 @@ POSTGRES_DB=kinetica
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=tu_password
 APP_SECURITY_JWT_SECRET=tu_secret_jwt_min_32_chars
+
+# Email (opcional)
+APP_MAIL_ENABLED=false
+APP_MAIL_FROM=no-reply@kinetica.local
+SPRING_MAIL_HOST=
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=
+SPRING_MAIL_PASSWORD=
 ```
 
 ## Ejecucion Local

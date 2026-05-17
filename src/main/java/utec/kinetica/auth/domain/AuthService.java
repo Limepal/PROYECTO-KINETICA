@@ -1,6 +1,8 @@
 package utec.kinetica.auth.domain;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utec.kinetica.auth.application.dto.AuthResponse;
@@ -19,12 +21,14 @@ import java.util.UUID;
 
 @Service
 public class AuthService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RegistrationNotifier registrationNotifier;
 
     public AuthService(
             UserRepository userRepository,
@@ -32,7 +36,8 @@ public class AuthService {
             UserRoleRepository userRoleRepository,
             RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService
+            JwtService jwtService,
+            RegistrationNotifier registrationNotifier
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -40,6 +45,7 @@ public class AuthService {
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.registrationNotifier = registrationNotifier;
     }
 
     @Transactional
@@ -64,6 +70,12 @@ public class AuthService {
         userRole.setUser(saved);
         userRole.setRole(role);
         userRoleRepository.save(userRole);
+
+        try {
+            registrationNotifier.notifyWelcome(saved.getEmail());
+        } catch (Exception ex) {
+            LOGGER.warn("Welcome email notification failed for {}: {}", saved.getEmail(), ex.getMessage());
+        }
 
         String token = jwtService.generateToken(saved, List.of("USER"));
         String refresh = issueRefreshToken(saved);
