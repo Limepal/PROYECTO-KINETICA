@@ -72,6 +72,8 @@ GitHub Actions corre los tests automaticamente en pushes a main/develop y PRs.
 - `GET /translations` - Listar traducciones
 - `POST /translations/{requestId}/media/upload` - Subir media gestionada por backend
 - `GET /kpis/translations?days=7` - KPIs de traduccion (solo ADMIN)
+- `POST /linguistics/es-to-gloss` - Convertir español natural a glosa LSP
+- `POST /linguistics/gloss-to-es` - Convertir glosa LSP a español natural
 - `GET /users` - Listar usuarios (solo ADMIN)
 - `GET /roles` - Listar roles (solo ADMIN)
 

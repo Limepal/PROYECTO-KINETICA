@@ -673,6 +673,52 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /linguistics/es-to-gloss:
+    post:
+      tags: [Linguistics]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlossConversionRequest'
+      responses:
+        '200':
+          description: Converted Spanish text into LSP-oriented gloss
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlossConversionResponse'
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /linguistics/gloss-to-es:
+    post:
+      tags: [Linguistics]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlossConversionRequest'
+      responses:
+        '200':
+          description: Converted gloss text into natural Spanish
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlossConversionResponse'
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
     put:
       tags: [Signs]
       security:
@@ -926,3 +972,26 @@ components:
         averageConfidence: { type: number, format: double, nullable: true }
         lowConfidenceRate: { type: number, format: double }
         lowConfidenceCount: { type: integer, format: int64 }
+
+    GlossConversionRequest:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+
+    GlossConversionResponse:
+      type: object
+      properties:
+        inputText: { type: string }
+        outputText: { type: string }
+        confidence: { type: number, format: double }
+        notes:
+          type: array
+          items: { type: string }
+        alternatives:
+          type: array
+          items: { type: string }
+        flags:
+          type: array
+          items: { type: string }
+        modelVersion: { type: string }

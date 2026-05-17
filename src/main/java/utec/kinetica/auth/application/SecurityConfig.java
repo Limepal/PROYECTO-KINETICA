@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/signs/**").authenticated()
                         .requestMatchers("/translations/**").authenticated()
+                        .requestMatchers("/linguistics/**").authenticated()
                         .requestMatchers("/users/**", "/roles/**").authenticated()
                         .anyRequest().denyAll()
                 )

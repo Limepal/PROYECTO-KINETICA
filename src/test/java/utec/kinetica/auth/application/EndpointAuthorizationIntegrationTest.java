@@ -73,4 +73,17 @@ class EndpointAuthorizationIntegrationTest {
                         .with(jwt().jwt(jwt -> jwt.subject("10").claim("roles", List.of("USER")))))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void glossEndpointsShouldReturn401WithoutAuth() throws Exception {
+        mockMvc.perform(post("/linguistics/es-to-gloss")
+                        .contentType("application/json")
+                        .content("{\"text\":\"quiero comer arroz\"}"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/linguistics/gloss-to-es")
+                        .contentType("application/json")
+                        .content("{\"text\":\"YO QUERER ARROZ\"}"))
+                .andExpect(status().isUnauthorized());
+    }
 }
