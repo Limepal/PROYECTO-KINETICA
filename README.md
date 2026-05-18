@@ -37,6 +37,14 @@ SPRING_MAIL_HOST=
 SPRING_MAIL_PORT=587
 SPRING_MAIL_USERNAME=
 SPRING_MAIL_PASSWORD=
+
+# OAuth2 Google (opcional)
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE=openid,profile,email
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI={baseUrl}/login/oauth2/code/{registrationId}
+APP_OAUTH2_SUCCESS_REDIRECT=http://localhost:3000/auth/callback
+APP_OAUTH2_FAILURE_REDIRECT=http://localhost:3000/auth/error
 ```
 
 ## Ejecucion Local
@@ -72,6 +80,7 @@ GitHub Actions corre los tests automaticamente en pushes a main/develop y PRs.
 
 - `POST /auth/register` - Registro de usuarios
 - `POST /auth/login` - Login
+- `GET /oauth2/authorization/google` - Iniciar login con Google (si está configurado)
 - `POST /auth/refresh` - Refresh token
 - `POST /auth/logout` - Logout
 - `GET /signs` - Listar señas (requiere auth)
@@ -100,6 +109,18 @@ Los prompts de ambos sentidos están implementados en:
 - `GithubModelsGlossClient.SYSTEM_GLOSS_TO_ES`
 
 Ambos fuerzan salida JSON estructurada para reducir variabilidad del modelo.
+
+## OAuth2 Google: callback contract
+
+- El backend inicia el flujo en `GET /oauth2/authorization/google`.
+- En login exitoso, redirige a `APP_OAUTH2_SUCCESS_REDIRECT?oauth=success`.
+- Los tokens internos (access + refresh) y metadatos de sesión se envían como cookies `HttpOnly`:
+  - `kinetica_access_token`
+  - `kinetica_refresh_token`
+  - `kinetica_token_type`
+  - `kinetica_user_id`
+  - `kinetica_user_email`
+- En login fallido, redirige a `APP_OAUTH2_FAILURE_REDIRECT?error=oauth_login_failed` y limpia las cookies anteriores.
 
 ## Diagrama Entidad Relacion
 

@@ -86,6 +86,18 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '500': { $ref: '#/components/responses/InternalServerError' }
 
+  /oauth2/authorization/google:
+    get:
+      tags: [Auth]
+      summary: Start OAuth2 login with Google
+      description: >-
+        Redirect-based endpoint handled by Spring Security OAuth2 client. On success/failure,
+        backend redirects to configured frontend URLs.
+      responses:
+        '302':
+          description: Redirect to Google OAuth2 consent/login flow
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
   /translations:
     get:
       tags: [Translations]
@@ -648,6 +660,48 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+    put:
+      tags: [Signs]
+      security:
+        - bearerAuth: []
+      description: Requires ADMIN role.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignUpdateRequest' }
+      responses:
+        '200':
+          description: Sign updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SignResponse' }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    delete:
+      tags: [Signs]
+      security:
+        - bearerAuth: []
+      description: Requires ADMIN role.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Sign deleted }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
 
   /kpis/translations:
     get:
@@ -718,48 +772,6 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-    put:
-      tags: [Signs]
-      security:
-        - bearerAuth: []
-      description: Requires ADMIN role.
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, format: int64 }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/SignCreateRequest' }
-      responses:
-        '200':
-          description: Sign updated
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/SignResponse' }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-    delete:
-      tags: [Signs]
-      security:
-        - bearerAuth: []
-      description: Requires ADMIN role.
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, format: int64 }
-      responses:
-        '204': { description: Sign deleted }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
         '500': { $ref: '#/components/responses/InternalServerError' }
 
 components:
@@ -947,6 +959,14 @@ components:
         roleName: { type: string, example: ADMIN }
 
     SignCreateRequest:
+      type: object
+      required: [label, mediaRef, locale]
+      properties:
+        label: { type: string }
+        mediaRef: { type: string }
+        locale: { type: string, example: es-PE }
+        active: { type: boolean, default: true }
+    SignUpdateRequest:
       type: object
       required: [label, mediaRef, locale]
       properties:

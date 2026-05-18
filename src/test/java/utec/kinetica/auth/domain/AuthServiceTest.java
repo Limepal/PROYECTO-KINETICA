@@ -166,4 +166,44 @@ class AuthServiceTest {
 
         verify(refreshTokenRepository).save(token);
     }
+
+    @Test
+    void loginWithOAuthShouldCreateUserWhenNotExists() {
+        UserRepository userRepository = mock(UserRepository.class);
+        RoleRepository roleRepository = mock(RoleRepository.class);
+        UserRoleRepository userRoleRepository = mock(UserRoleRepository.class);
+        RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtService jwtService = mock(JwtService.class);
+        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
+
+        AuthService service = new AuthService(
+                userRepository,
+                roleRepository,
+                userRoleRepository,
+                refreshTokenRepository,
+                passwordEncoder,
+                jwtService,
+                registrationNotifier
+        );
+
+        when(userRepository.findByEmail("oauth@test.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(any(String.class))).thenReturn("oauth-hash");
+        Role role = new Role();
+        role.setName(RoleName.USER);
+        when(roleRepository.findByName(RoleName.USER)).thenReturn(Optional.of(role));
+
+        User saved = new User();
+        saved.setId(33L);
+        saved.setEmail("oauth@test.com");
+        when(userRepository.save(any(User.class))).thenReturn(saved);
+        when(jwtService.generateToken(any(User.class), any())).thenReturn("oauth-jwt");
+        when(userRoleRepository.findByUser_Id(33L)).thenReturn(List.of());
+
+        AuthResponse response = service.loginWithOAuth("oauth@test.com");
+
+        assertEquals(33L, response.userId());
+        assertEquals("oauth-jwt", response.accessToken());
+        assertEquals("oauth@test.com", response.email());
+    }
 }

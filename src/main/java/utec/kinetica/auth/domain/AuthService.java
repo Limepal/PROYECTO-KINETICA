@@ -101,6 +101,27 @@ public class AuthService {
     }
 
     @Transactional
+    public AuthResponse loginWithOAuth(String email) {
+        User user = userRepository.findByEmail(email).orElseGet(() -> createOAuthUser(email));
+        List<String> roles = userRoleRepository.findByUser_Id(user.getId()).stream()
+                .map(ur -> ur.getRole().getName().name())
+                .toList();
+
+        if (roles.isEmpty()) {
+            Role role = ensureUserRole();
+            UserRole userRole = new UserRole();
+            userRole.setUser(user);
+            userRole.setRole(role);
+            userRoleRepository.save(userRole);
+            roles = List.of("USER");
+        }
+
+        String token = jwtService.generateToken(user, roles);
+        String refresh = issueRefreshToken(user);
+        return new AuthResponse(user.getId(), user.getEmail(), token, refresh, "Bearer");
+    }
+
+    @Transactional
     public AuthResponse refresh(RefreshRequest request) {
         String tokenHash = hashToken(request.refreshToken());
         RefreshToken refreshToken = refreshTokenRepository.findActiveTokenForUpdate(tokenHash)
@@ -140,6 +161,29 @@ public class AuthService {
         token.setExpiresAt(Instant.now().plusSeconds(60L * 60 * 24 * 7));
         refreshTokenRepository.save(token);
         return raw;
+    }
+
+    private Role ensureUserRole() {
+        return roleRepository.findByName(RoleName.USER)
+                .orElseGet(() -> {
+                    Role newRole = new Role();
+                    newRole.setName(RoleName.USER);
+                    return roleRepository.save(newRole);
+                });
+    }
+
+    private User createOAuthUser(String email) {
+        User user = new User();
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        User saved = userRepository.save(user);
+
+        Role role = ensureUserRole();
+        UserRole userRole = new UserRole();
+        userRole.setUser(saved);
+        userRole.setRole(role);
+        userRoleRepository.save(userRole);
+        return saved;
     }
 
     private String hashToken(String token) {
