@@ -1,6 +1,10 @@
 {
-    "word_ids": [
-        "hola-der",
-        "hola-izq"
-    ]
+  "word_ids": [
+        "a-der",
+        "a-izq",
+        "aprender",
+        "que",
+    "buenos-dias",
+    "comer"
+  ]
 }

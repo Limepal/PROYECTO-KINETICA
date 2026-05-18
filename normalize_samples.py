@@ -10,7 +10,10 @@ def read_frames_from_directory(directory):
     for filename in sorted(os.listdir(directory)):
         if filename.endswith('.jpg'):
             frame = cv2.imread(os.path.join(directory, filename))
-            frames.append(frame)
+            if frame is not None:
+                frames.append(frame)
+            else:
+                print(f'  ⚠ frame corrupto o ilegible: {filename}')
     return frames
 
 

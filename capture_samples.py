@@ -1,7 +1,7 @@
 import os
 import cv2
 import numpy as np
-from mediapipe.python.solutions.holistic import Holistic
+import mediapipe as mp
 from helpers import create_folder, draw_keypoints, mediapipe_detection, save_frames, there_hand
 from constants import FONT, FONT_POS, FONT_SIZE, FRAME_ACTIONS_PATH, ROOT_PATH
 from datetime import datetime
@@ -10,11 +10,6 @@ from datetime import datetime
 def capture_samples(path, margin_frame=1, min_cant_frames=5, delay_frames=3):
     '''
     Captura muestras de video para una seña y guarda los frames en `path`.
-
-    path            ruta de la carpeta de la palabra
-    margin_frame    frames ignorados al inicio y al final de cada seña
-    min_cant_frames mínimo de frames para considerar una muestra válida
-    delay_frames    frames de espera antes de detener la captura al perder la mano
     '''
     create_folder(path)
 
@@ -23,7 +18,12 @@ def capture_samples(path, margin_frame=1, min_cant_frames=5, delay_frames=3):
     fix_frames = 0
     recording = False
 
-    with Holistic() as holistic_model:
+    with mp.solutions.hands.Hands(
+        static_image_mode=False,
+        max_num_hands=2,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    ) as hands_model:
         video = cv2.VideoCapture(0)
 
         while video.isOpened():
@@ -32,7 +32,7 @@ def capture_samples(path, margin_frame=1, min_cant_frames=5, delay_frames=3):
                 break
 
             image = frame.copy()
-            results = mediapipe_detection(frame, holistic_model)
+            results = mediapipe_detection(frame, hands_model)
 
             if there_hand(results) or recording:
                 recording = False
@@ -66,7 +66,6 @@ def capture_samples(path, margin_frame=1, min_cant_frames=5, delay_frames=3):
 
 
 if __name__ == "__main__":
-    # Muestra las señas disponibles en words.json
     import json
     words_json_path = os.path.join(ROOT_PATH, "models", "words.json")
     if os.path.exists(words_json_path):

@@ -1,1 +1,9 @@
+data/
+frame_actions/
+videos/
+.venv/
 
+count_frames.py
+test_h5.py
+extract_from_video.py
+play_frames.py
