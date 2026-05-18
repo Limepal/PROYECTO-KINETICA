@@ -1,9 +1,10 @@
 package utec.kinetica.auth.application.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record AssignRoleRequest(
-        Long userId,
+        @NotNull Long userId,
         @NotBlank String roleName
 ) {
 }
