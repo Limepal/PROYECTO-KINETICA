@@ -3,8 +3,8 @@ package utec.kinetica.auth.domain;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import utec.kinetica.auth.application.dto.AuthResponse;
-import utec.kinetica.auth.application.dto.RefreshRequest;
+import utec.kinetica.common.domain.exception.UnauthorizedOperationException;
+import utec.kinetica.support.PostgresContainerSupport;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,18 +16,18 @@ import java.util.concurrent.Future;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
-class RefreshTokenConcurrencyIntegrationTest {
+class RefreshTokenConcurrencyIntegrationTest extends PostgresContainerSupport {
 
     @Autowired
     private AuthService authService;
 
     @Test
-    void twoConcurrentRefreshCallsShouldAllowSingleUseOnly() throws Exception {
+    void shouldAllowSingleUseOnlyWhenTwoConcurrentRefreshCallsAreMade() throws Exception {
         String email = "concurrent-" + System.nanoTime() + "@test.com";
         String password = "secret-123";
 
         authService.register(email, password);
-        AuthResponse login = authService.login(email, password);
+        AuthTokens login = authService.login(email, password);
         String sameRefreshToken = login.refreshToken();
 
         CountDownLatch ready = new CountDownLatch(2);
@@ -40,9 +40,9 @@ class RefreshTokenConcurrencyIntegrationTest {
                     ready.countDown();
                     go.await();
                     try {
-                        authService.refresh(new RefreshRequest(sameRefreshToken));
+                        authService.refresh(sameRefreshToken);
                         return true;
-                    } catch (IllegalArgumentException ex) {
+                    } catch (UnauthorizedOperationException ex) {
                         return false;
                     }
                 }));

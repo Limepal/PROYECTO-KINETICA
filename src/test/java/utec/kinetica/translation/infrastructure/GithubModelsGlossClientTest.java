@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class GithubModelsGlossClientTest {
 
     @Test
-    void parsePayloadShouldHandlePlainJson() throws Exception {
+    void shouldHandlePlainJsonWhenParsingPayload() throws Exception {
         String payload = """
                 {
                   "output_text":"YO QUERER ARROZ",
@@ -26,7 +26,7 @@ class GithubModelsGlossClientTest {
     }
 
     @Test
-    void parsePayloadShouldHandleMarkdownCodeFence() throws Exception {
+    void shouldHandleMarkdownCodeFenceWhenParsingPayload() throws Exception {
         String payload = """
                 ```json
                 {

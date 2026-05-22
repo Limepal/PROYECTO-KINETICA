@@ -5,24 +5,35 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-@Table(name = "signs")
+import jakarta.persistence.UniqueConstraint;
+
+@Table(
+        name = "signs",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_signs_normalized_label_locale", columnNames = {"normalized_label", "locale"})
+        },
+        indexes = {
+                @Index(name = "idx_signs_locale_active", columnList = "locale, active")
+        }
+)
 @Entity
 public class Sign {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 150)
     private String label;
 
-    @Column(nullable = false)
+    @Column(name = "normalized_label", nullable = false, length = 150)
     private String normalizedLabel;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 512)
     private String mediaRef;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 10)
     private String locale;
 
     @Column(nullable = false)

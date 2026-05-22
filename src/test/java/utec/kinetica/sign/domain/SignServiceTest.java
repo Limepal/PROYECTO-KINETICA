@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 class SignServiceTest {
 
     @Test
-    void createNormalizesLabel() {
+    void shouldNormalizeLabelWhenCreatingSign() {
         SignRepository repository = mock(SignRepository.class);
         SignService service = new SignService(repository);
 

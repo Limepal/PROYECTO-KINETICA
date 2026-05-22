@@ -13,7 +13,7 @@ Backend MVP para aplicacion de traduccion de lenguaje de señas peruano (LSP) a 
 
 ## Modulos
 
-- **auth**: Autenticacion JWT, refresh tokens, roles (USER/ADMIN)
+- **auth**: Autenticacion JWT, refresh tokens, roles (USER/ADMIN/MANAGER)
 - **sign**: Catalogo de señas (CRUD)
 - **translation**: Traducciones async con patron outbox
 - **media**: Referencias a contenido multimedia
@@ -29,6 +29,9 @@ POSTGRES_DB=kinetica
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=tu_password
 APP_SECURITY_JWT_SECRET=tu_secret_jwt_min_32_chars
+APP_SECURITY_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+APP_SECURITY_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+APP_SECURITY_CORS_ALLOWED_HEADERS=Authorization,Content-Type
 
 # Email (opcional)
 APP_MAIL_ENABLED=false

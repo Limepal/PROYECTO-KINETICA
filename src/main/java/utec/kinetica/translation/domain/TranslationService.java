@@ -4,6 +4,8 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import utec.kinetica.auth.domain.User;
+import utec.kinetica.auth.infrastructure.UserRepository;
 import utec.kinetica.translation.infrastructure.OutboxEventRepository;
 import utec.kinetica.translation.infrastructure.TranslationRequestRepository;
 import utec.kinetica.translation.infrastructure.TranslationResultRepository;
@@ -18,24 +20,29 @@ public class TranslationService {
     private final TranslationRequestRepository requestRepository;
     private final TranslationResultRepository resultRepository;
     private final OutboxEventRepository outboxEventRepository;
+    private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public TranslationService(
             TranslationRequestRepository requestRepository,
             TranslationResultRepository resultRepository,
             OutboxEventRepository outboxEventRepository,
+            UserRepository userRepository,
             ApplicationEventPublisher eventPublisher
     ) {
         this.requestRepository = requestRepository;
         this.resultRepository = resultRepository;
         this.outboxEventRepository = outboxEventRepository;
+        this.userRepository = userRepository;
         this.eventPublisher = eventPublisher;
     }
 
     @Transactional
     public TranslationRequest createRequest(Long userId, TranslationDirection direction, String sourceText) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
         TranslationRequest request = new TranslationRequest();
-        request.setUserId(userId);
+        request.setUser(user);
         request.setDirection(direction);
         request.setSourceText(sourceText);
         request.setStatus(TranslationStatus.PENDING);
@@ -53,7 +60,7 @@ public class TranslationService {
 
     @Transactional(readOnly = true)
     public java.util.List<TranslationRequest> listRequests(Long userId) {
-        return requestRepository.findByUserId(userId);
+        return requestRepository.findByUser_Id(userId);
     }
 
     @Transactional(readOnly = true)
@@ -67,7 +74,7 @@ public class TranslationService {
 
     @Transactional(readOnly = true)
     public TranslationRequest getRequest(Long requestId, Long userId) {
-        return requestRepository.findByIdAndUserId(requestId, userId)
+        return requestRepository.findByIdAndUser_Id(requestId, userId)
                 .orElseThrow(() -> new EntityNotFoundException("Translation request not found: " + requestId));
     }
 

@@ -1,6 +1,7 @@
 package utec.kinetica.translation.domain;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -20,19 +21,22 @@ public class TranslationRequestedEventHandler {
     private final OutboxEventRepository outboxEventRepository;
     private final AiInferenceClient aiInferenceClient;
     private final GlossConversionService glossConversionService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TranslationRequestedEventHandler(
             TranslationRequestRepository requestRepository,
             TranslationResultRepository resultRepository,
             OutboxEventRepository outboxEventRepository,
             AiInferenceClient aiInferenceClient,
-            GlossConversionService glossConversionService
+            GlossConversionService glossConversionService,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.requestRepository = requestRepository;
         this.resultRepository = resultRepository;
         this.outboxEventRepository = outboxEventRepository;
         this.aiInferenceClient = aiInferenceClient;
         this.glossConversionService = glossConversionService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Async
@@ -72,6 +76,7 @@ public class TranslationRequestedEventHandler {
                 outbox.setLastError(null);
                 outboxEventRepository.save(outbox);
             });
+            eventPublisher.publishEvent(new TranslationCompletedEvent(event.requestId(), event.outboxId()));
         } catch (Exception ex) {
             outboxEventRepository.findById(event.outboxId()).ifPresent(outbox -> {
                 int retryCount = outbox.getRetryCount() == null ? 0 : outbox.getRetryCount();
@@ -82,6 +87,7 @@ public class TranslationRequestedEventHandler {
                 outbox.setNextRetryAt(calculateNextRetryAt(retryCount));
                 outboxEventRepository.save(outbox);
             });
+            eventPublisher.publishEvent(new TranslationFailedEvent(event.requestId(), event.outboxId(), ex.getClass().getSimpleName() + ": " + ex.getMessage()));
             throw ex;
         }
     }

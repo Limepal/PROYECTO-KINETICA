@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
+import utec.kinetica.auth.domain.User;
+import utec.kinetica.auth.infrastructure.UserRepository;
+import utec.kinetica.support.PostgresContainerSupport;
 import utec.kinetica.translation.domain.OutboxEvent;
 import utec.kinetica.translation.domain.TranslationDirection;
 import utec.kinetica.translation.domain.TranslationRequest;
@@ -18,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @Transactional
-class TranslationRepositoryQueryIntegrationTest {
+class TranslationRepositoryQueryIntegrationTest extends PostgresContainerSupport {
 
     @Autowired
     private TranslationRequestRepository translationRequestRepository;
@@ -29,17 +32,25 @@ class TranslationRepositoryQueryIntegrationTest {
     @Autowired
     private OutboxEventRepository outboxEventRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @Test
-    void findByRequestIdInShouldReturnOnlyMatchingResults() {
+    void shouldReturnOnlyMatchingResultsWhenFindingByRequestIdIn() {
+        User user = new User();
+        user.setEmail("translation-query@test.com");
+        user.setPasswordHash("hash");
+        user = userRepository.save(user);
+
         TranslationRequest r1 = new TranslationRequest();
-        r1.setUserId(100L);
+        r1.setUser(user);
         r1.setDirection(TranslationDirection.SIGN_TO_TEXT);
         r1.setStatus(TranslationStatus.DONE);
         r1.setSourceText("uno");
         r1 = translationRequestRepository.save(r1);
 
         TranslationRequest r2 = new TranslationRequest();
-        r2.setUserId(100L);
+        r2.setUser(user);
         r2.setDirection(TranslationDirection.TEXT_TO_SIGN);
         r2.setStatus(TranslationStatus.DONE);
         r2.setSourceText("dos");
@@ -65,7 +76,7 @@ class TranslationRepositoryQueryIntegrationTest {
     }
 
     @Test
-    void findRetryableByStatusShouldFilterByWindowAndRetryBudget() {
+    void shouldFilterByWindowAndRetryBudgetWhenFindingRetryableByStatus() {
         OutboxEvent retryable = new OutboxEvent();
         retryable.setEventType("TRANSLATION_REQUESTED");
         retryable.setPayload("{\"requestId\":1}");

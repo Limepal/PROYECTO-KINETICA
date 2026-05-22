@@ -1,6 +1,7 @@
 package utec.kinetica.auth.application;
 
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,9 +13,12 @@ import utec.kinetica.auth.application.dto.LoginRequest;
 import utec.kinetica.auth.application.dto.RefreshRequest;
 import utec.kinetica.auth.application.dto.RegisterRequest;
 import utec.kinetica.auth.domain.AuthService;
+import utec.kinetica.auth.domain.AuthTokens;
+
+import java.net.URI;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
     private final AuthService authService;
 
@@ -24,17 +28,20 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request.email(), request.password()));
+        AuthTokens tokens = authService.register(request.email(), request.password());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI.create("/api/v1/users/" + tokens.userId()))
+                .body(toResponse(tokens));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request.email(), request.password()));
+        return ResponseEntity.ok(toResponse(authService.login(request.email(), request.password())));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
-        return ResponseEntity.ok(authService.refresh(request));
+        return ResponseEntity.ok(toResponse(authService.refresh(request.refreshToken())));
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -42,5 +49,15 @@ public class AuthController {
     public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
         authService.logout(request.refreshToken());
         return ResponseEntity.noContent().build();
+    }
+
+    private AuthResponse toResponse(AuthTokens tokens) {
+        return new AuthResponse(
+                tokens.userId(),
+                tokens.email(),
+                tokens.accessToken(),
+                tokens.refreshToken(),
+                tokens.tokenType()
+        );
     }
 }

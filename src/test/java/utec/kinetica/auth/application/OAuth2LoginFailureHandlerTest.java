@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OAuth2LoginFailureHandlerTest {
 
     @Test
-    void shouldClearCookiesAndRedirectWithGenericError() throws ServletException, IOException {
+    void shouldClearCookiesAndRedirectWithGenericErrorWhenOAuth2LoginFails() throws ServletException, IOException {
         OAuth2LoginFailureHandler handler = new OAuth2LoginFailureHandler("http://localhost:3000/auth/error");
 
         MockHttpServletRequest request = new MockHttpServletRequest();

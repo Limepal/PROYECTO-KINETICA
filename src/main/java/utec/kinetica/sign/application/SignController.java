@@ -12,9 +12,10 @@ import utec.kinetica.sign.domain.Sign;
 import utec.kinetica.sign.domain.SignService;
 
 import java.util.List;
+import java.net.URI;
 
 @RestController
-@RequestMapping("/signs")
+@RequestMapping("/api/v1/signs")
 public class SignController {
     private final SignService service;
 
@@ -24,33 +25,35 @@ public class SignController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<List<SignResponse>> list() {
+    public ResponseEntity<List<SignResponse>> list() {
         return ResponseEntity.ok(service.list().stream().map(this::toResponse).toList());
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<SignResponse> create(@Valid @RequestBody SignCreateRequest request) {
+    public ResponseEntity<SignResponse> create(@Valid @RequestBody SignCreateRequest request) {
         Sign created = service.create(request.label(), request.mediaRef(), request.locale(), request.active());
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI.create("/api/v1/signs/" + created.getId()))
+                .body(toResponse(created));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<SignResponse> getById(@PathVariable Long id) {
+    public ResponseEntity<SignResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(toResponse(service.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<SignResponse> update(@PathVariable Long id, @Valid @RequestBody SignUpdateRequest request) {
+    public ResponseEntity<SignResponse> update(@PathVariable Long id, @Valid @RequestBody SignUpdateRequest request) {
         Sign updated = service.update(id, request.label(), request.mediaRef(), request.locale(), request.active());
         return ResponseEntity.ok(toResponse(updated));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }

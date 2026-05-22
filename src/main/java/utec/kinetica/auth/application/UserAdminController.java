@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,7 +19,7 @@ import utec.kinetica.auth.domain.UserAdminService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/v1/users")
 public class UserAdminController {
     private final UserAdminService userAdminService;
 
@@ -26,25 +27,25 @@ public class UserAdminController {
         this.userAdminService = userAdminService;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @GetMapping
     public ResponseEntity<List<UserResponse>> list() {
         return ResponseEntity.ok(userAdminService.list().stream().map(this::toResponse).toList());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(toResponse(userAdminService.getById(id)));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserResponse> updateEmail(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(toResponse(userAdminService.updateEmail(id, request.email())));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userAdminService.delete(id);

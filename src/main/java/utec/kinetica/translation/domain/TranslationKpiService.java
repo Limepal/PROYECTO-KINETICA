@@ -3,7 +3,6 @@ package utec.kinetica.translation.domain;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import utec.kinetica.translation.application.dto.TranslationKpiResponse;
 import utec.kinetica.translation.infrastructure.TranslationRequestRepository;
 import utec.kinetica.translation.infrastructure.TranslationResultRepository;
 
@@ -29,7 +28,7 @@ public class TranslationKpiService {
     }
 
     @Transactional(readOnly = true)
-    public TranslationKpiResponse summarizeLastDays(int days) {
+    public TranslationKpiSummary summarizeLastDays(int days) {
         int normalizedDays = Math.max(days, 1);
         Instant to = Instant.now();
         Instant from = to.minus(normalizedDays, ChronoUnit.DAYS);
@@ -67,7 +66,7 @@ public class TranslationKpiService {
         double successRate = totalRequests == 0 ? 0 : (double) completed / totalRequests;
         double lowConfidenceRate = confidences.isEmpty() ? 0 : (double) lowConfidenceCount / confidences.size();
 
-        return new TranslationKpiResponse(
+        return new TranslationKpiSummary(
                 from,
                 to,
                 totalRequests,

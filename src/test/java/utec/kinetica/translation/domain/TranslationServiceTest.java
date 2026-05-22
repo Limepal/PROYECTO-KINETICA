@@ -3,6 +3,8 @@ package utec.kinetica.translation.domain;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
+import utec.kinetica.auth.domain.User;
+import utec.kinetica.auth.infrastructure.UserRepository;
 import utec.kinetica.translation.infrastructure.OutboxEventRepository;
 import utec.kinetica.translation.infrastructure.TranslationRequestRepository;
 import utec.kinetica.translation.infrastructure.TranslationResultRepository;
@@ -16,18 +18,24 @@ import static org.mockito.Mockito.when;
 class TranslationServiceTest {
 
     @Test
-    void createRequestStoresPendingAndOutbox() {
+    void shouldStorePendingRequestAndOutboxWhenCreatingRequest() {
         TranslationRequestRepository requestRepository = mock(TranslationRequestRepository.class);
         TranslationResultRepository resultRepository = mock(TranslationResultRepository.class);
         OutboxEventRepository outboxRepository = mock(OutboxEventRepository.class);
+        UserRepository userRepository = mock(UserRepository.class);
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
 
         TranslationService service = new TranslationService(
                 requestRepository,
                 resultRepository,
                 outboxRepository,
+                userRepository,
                 publisher
         );
+
+        User user = new User();
+        user.setId(1L);
+        when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(user));
 
         TranslationRequest persisted = new TranslationRequest();
         persisted.setId(55L);

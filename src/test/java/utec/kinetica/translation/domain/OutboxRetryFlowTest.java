@@ -24,19 +24,21 @@ import static org.mockito.Mockito.when;
 class OutboxRetryFlowTest {
 
     @Test
-    void handlerShouldMoveOutboxFromProcessingToProcessed() {
+    void shouldMoveOutboxFromProcessingToProcessedWhenHandlerSucceeds() {
         TranslationRequestRepository requestRepository = mock(TranslationRequestRepository.class);
         TranslationResultRepository resultRepository = mock(TranslationResultRepository.class);
         OutboxEventRepository outboxEventRepository = mock(OutboxEventRepository.class);
         AiInferenceClient aiInferenceClient = mock(AiInferenceClient.class);
         GlossConversionService glossConversionService = mock(GlossConversionService.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
         TranslationRequestedEventHandler handler = new TranslationRequestedEventHandler(
                 requestRepository,
                 resultRepository,
                 outboxEventRepository,
                 aiInferenceClient,
-                glossConversionService
+                glossConversionService,
+                eventPublisher
         );
 
         OutboxEvent outboxEvent = new OutboxEvent();
@@ -66,10 +68,11 @@ class OutboxRetryFlowTest {
     }
 
     @Test
-    void schedulerShouldFailInvalidPendingAndRetryFailedEvents() {
+    void shouldFailInvalidPendingAndRetryFailedEventsWhenSchedulerRuns() {
         OutboxEventRepository outboxEventRepository = mock(OutboxEventRepository.class);
         ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
-        OutboxRecoveryScheduler scheduler = new OutboxRecoveryScheduler(outboxEventRepository, eventPublisher);
+        OutboxPayloadParser outboxPayloadParser = mock(OutboxPayloadParser.class);
+        OutboxRecoveryScheduler scheduler = new OutboxRecoveryScheduler(outboxEventRepository, eventPublisher, outboxPayloadParser);
 
         OutboxEvent invalidPending = new OutboxEvent();
         invalidPending.setId(1L);
@@ -90,6 +93,8 @@ class OutboxRetryFlowTest {
                 .thenReturn(List.of(invalidPending));
         when(outboxEventRepository.findRetryableByStatus(eq("FAILED"), any(Instant.class), any(Pageable.class)))
                 .thenReturn(List.of(retryableFailed));
+        when(outboxPayloadParser.extractRequestId("{}")).thenReturn(null);
+        when(outboxPayloadParser.extractRequestId("{\"requestId\":99}")).thenReturn(99L);
 
         scheduler.recoverPendingEvents();
 

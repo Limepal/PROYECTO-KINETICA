@@ -13,7 +13,7 @@ import utec.kinetica.translation.domain.GlossConversionResult;
 import utec.kinetica.translation.domain.GlossConversionService;
 
 @RestController
-@RequestMapping("/linguistics")
+@RequestMapping("/api/v1/conversions")
 public class GlossController {
     private final GlossConversionService glossConversionService;
 
@@ -23,14 +23,14 @@ public class GlossController {
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping("/es-to-gloss")
-    public ResponseEntity<GlossConversionResponse> spanishToGloss(@Valid @RequestBody GlossConversionRequest request) {
+    public ResponseEntity<GlossConversionResponse> convertSpanishToGloss(@Valid @RequestBody GlossConversionRequest request) {
         GlossConversionResult result = glossConversionService.spanishToGloss(request.text());
         return ResponseEntity.ok(toResponse(request.text(), result));
     }
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping("/gloss-to-es")
-    public ResponseEntity<GlossConversionResponse> glossToSpanish(@Valid @RequestBody GlossConversionRequest request) {
+    public ResponseEntity<GlossConversionResponse> convertGlossToSpanish(@Valid @RequestBody GlossConversionRequest request) {
         GlossConversionResult result = glossConversionService.glossToSpanish(request.text());
         return ResponseEntity.ok(toResponse(request.text(), result));
     }

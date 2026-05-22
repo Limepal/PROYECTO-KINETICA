@@ -6,6 +6,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -13,7 +14,13 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
-@Table(name = "refresh_tokens")
+@Table(
+        name = "refresh_tokens",
+        indexes = {
+                @Index(name = "idx_refresh_tokens_user", columnList = "user_id"),
+                @Index(name = "idx_refresh_tokens_revoked_expires", columnList = "revoked_at, expires_at")
+        }
+)
 public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,9 +29,10 @@ public class RefreshToken {
     @Column(nullable = false, unique = true)
     private String tokenHash;
 
-    @Column(nullable = false)
+    @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
+    @Column(name = "revoked_at")
     private Instant revokedAt;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

@@ -18,8 +18,10 @@ import utec.kinetica.translation.application.dto.FeedbackResponse;
 import utec.kinetica.translation.domain.Feedback;
 import utec.kinetica.translation.domain.FeedbackService;
 
+import java.net.URI;
+
 @RestController
-@RequestMapping("/translations/{requestId}/feedback")
+@RequestMapping("/api/v1/translations/{requestId}/feedback")
 public class FeedbackController {
     private final FeedbackService feedbackService;
 
@@ -27,7 +29,7 @@ public class FeedbackController {
         this.feedbackService = feedbackService;
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
     @PostMapping
     public ResponseEntity<FeedbackResponse> create(
             @AuthenticationPrincipal Jwt jwt,
@@ -36,31 +38,33 @@ public class FeedbackController {
     ) {
         Long userId = Long.valueOf(jwt.getSubject());
         Feedback feedback = feedbackService.create(requestId, userId, request.rating(), request.correctionText());
-        return ResponseEntity.status(HttpStatus.CREATED).body(new FeedbackResponse(
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI.create("/api/v1/translations/" + requestId + "/feedback/" + feedback.getId()))
+                .body(new FeedbackResponse(
                 feedback.getId(),
                 feedback.getRequest().getId(),
-                feedback.getUserId(),
+                feedback.getUser().getId(),
                 feedback.getRating(),
                 feedback.getCorrectionText(),
                 feedback.getCreatedAt()
         ));
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
     @GetMapping
     public ResponseEntity<java.util.List<FeedbackResponse>> list(@AuthenticationPrincipal Jwt jwt, @PathVariable Long requestId) {
         Long userId = Long.valueOf(jwt.getSubject());
         return ResponseEntity.ok(feedbackService.listByRequest(requestId, userId).stream().map(this::toResponse).toList());
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
     @GetMapping("/{feedbackId}")
     public ResponseEntity<FeedbackResponse> getById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long requestId, @PathVariable Long feedbackId) {
         Long userId = Long.valueOf(jwt.getSubject());
         return ResponseEntity.ok(toResponse(feedbackService.getById(requestId, userId, feedbackId)));
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
     @DeleteMapping("/{feedbackId}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long requestId, @PathVariable Long feedbackId) {
         Long userId = Long.valueOf(jwt.getSubject());
@@ -72,7 +76,7 @@ public class FeedbackController {
         return new FeedbackResponse(
                 feedback.getId(),
                 feedback.getRequest().getId(),
-                feedback.getUserId(),
+                feedback.getUser().getId(),
                 feedback.getRating(),
                 feedback.getCorrectionText(),
                 feedback.getCreatedAt()

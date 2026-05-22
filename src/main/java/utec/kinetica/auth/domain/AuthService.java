@@ -1,34 +1,32 @@
 package utec.kinetica.auth.domain;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import utec.kinetica.auth.application.dto.AuthResponse;
-import utec.kinetica.auth.application.dto.RefreshRequest;
 import utec.kinetica.auth.infrastructure.RefreshTokenRepository;
 import utec.kinetica.auth.infrastructure.RoleRepository;
 import utec.kinetica.auth.infrastructure.UserRepository;
 import utec.kinetica.auth.infrastructure.UserRoleRepository;
+import utec.kinetica.common.domain.exception.DuplicateResourceException;
+import utec.kinetica.common.domain.exception.InvalidOperationException;
+import utec.kinetica.common.domain.exception.TokenExpiredException;
+import utec.kinetica.common.domain.exception.UnauthorizedOperationException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class AuthService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final RegistrationNotifier registrationNotifier;
+    private final ApplicationEventPublisher eventPublisher;
+    private final RefreshTokenHasher refreshTokenHasher;
 
     public AuthService(
             UserRepository userRepository,
@@ -37,7 +35,8 @@ public class AuthService {
             RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            RegistrationNotifier registrationNotifier
+            ApplicationEventPublisher eventPublisher,
+            RefreshTokenHasher refreshTokenHasher
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -45,13 +44,14 @@ public class AuthService {
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.registrationNotifier = registrationNotifier;
+        this.eventPublisher = eventPublisher;
+        this.refreshTokenHasher = refreshTokenHasher;
     }
 
     @Transactional
-    public AuthResponse register(String email, String rawPassword) {
+    public AuthTokens register(String email, String rawPassword) {
         if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalArgumentException("Email already registered");
+            throw new DuplicateResourceException("Email already registered");
         }
 
         Role role = roleRepository.findByName(RoleName.USER)
@@ -71,24 +71,20 @@ public class AuthService {
         userRole.setRole(role);
         userRoleRepository.save(userRole);
 
-        try {
-            registrationNotifier.notifyWelcome(saved.getEmail());
-        } catch (Exception ex) {
-            LOGGER.warn("Welcome email notification failed for {}: {}", saved.getEmail(), ex.getMessage());
-        }
+        eventPublisher.publishEvent(new UserRegisteredEvent(saved.getId(), saved.getEmail()));
 
         String token = jwtService.generateToken(saved, List.of("USER"));
         String refresh = issueRefreshToken(saved);
-        return new AuthResponse(saved.getId(), saved.getEmail(), token, refresh, "Bearer");
+        return new AuthTokens(saved.getId(), saved.getEmail(), token, refresh, "Bearer");
     }
 
     @Transactional
-    public AuthResponse login(String email, String rawPassword) {
+    public AuthTokens login(String email, String rawPassword) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+                .orElseThrow(() -> new UnauthorizedOperationException("Invalid credentials"));
 
         if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new UnauthorizedOperationException("Invalid credentials");
         }
 
         List<String> roles = userRoleRepository.findByUser_Id(user.getId()).stream()
@@ -97,11 +93,11 @@ public class AuthService {
 
         String token = jwtService.generateToken(user, roles);
         String refresh = issueRefreshToken(user);
-        return new AuthResponse(user.getId(), user.getEmail(), token, refresh, "Bearer");
+        return new AuthTokens(user.getId(), user.getEmail(), token, refresh, "Bearer");
     }
 
     @Transactional
-    public AuthResponse loginWithOAuth(String email) {
+    public AuthTokens loginWithOAuth(String email) {
         User user = userRepository.findByEmail(email).orElseGet(() -> createOAuthUser(email));
         List<String> roles = userRoleRepository.findByUser_Id(user.getId()).stream()
                 .map(ur -> ur.getRole().getName().name())
@@ -118,17 +114,17 @@ public class AuthService {
 
         String token = jwtService.generateToken(user, roles);
         String refresh = issueRefreshToken(user);
-        return new AuthResponse(user.getId(), user.getEmail(), token, refresh, "Bearer");
+        return new AuthTokens(user.getId(), user.getEmail(), token, refresh, "Bearer");
     }
 
     @Transactional
-    public AuthResponse refresh(RefreshRequest request) {
-        String tokenHash = hashToken(request.refreshToken());
+    public AuthTokens refresh(String refreshTokenRaw) {
+        String tokenHash = refreshTokenHasher.hash(refreshTokenRaw);
         RefreshToken refreshToken = refreshTokenRepository.findActiveTokenForUpdate(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+                .orElseThrow(() -> new UnauthorizedOperationException("Invalid refresh token"));
 
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new IllegalArgumentException("Refresh token expired or revoked");
+            throw new TokenExpiredException("Refresh token expired or revoked");
         }
 
         User user = refreshToken.getUser();
@@ -141,14 +137,14 @@ public class AuthService {
         refreshTokenRepository.save(refreshToken);
         String newRefresh = issueRefreshToken(user);
 
-        return new AuthResponse(user.getId(), user.getEmail(), accessToken, newRefresh, "Bearer");
+        return new AuthTokens(user.getId(), user.getEmail(), accessToken, newRefresh, "Bearer");
     }
 
     @Transactional
     public void logout(String refreshTokenRaw) {
-        String tokenHash = hashToken(refreshTokenRaw);
+        String tokenHash = refreshTokenHasher.hash(refreshTokenRaw);
         RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+                .orElseThrow(() -> new InvalidOperationException("Invalid refresh token"));
         refreshToken.setRevokedAt(Instant.now());
         refreshTokenRepository.save(refreshToken);
     }
@@ -157,7 +153,7 @@ public class AuthService {
         String raw = UUID.randomUUID().toString();
         RefreshToken token = new RefreshToken();
         token.setUser(user);
-        token.setTokenHash(hashToken(raw));
+        token.setTokenHash(refreshTokenHasher.hash(raw));
         token.setExpiresAt(Instant.now().plusSeconds(60L * 60 * 24 * 7));
         refreshTokenRepository.save(token);
         return raw;
@@ -186,17 +182,4 @@ public class AuthService {
         return saved;
     }
 
-    private String hashToken(String token) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-            StringBuilder builder = new StringBuilder();
-            for (byte b : hashed) {
-                builder.append(String.format("%02x", b));
-            }
-            return builder.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
-    }
 }

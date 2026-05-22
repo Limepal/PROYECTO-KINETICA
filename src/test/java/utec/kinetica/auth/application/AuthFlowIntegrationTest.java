@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import utec.kinetica.auth.domain.RefreshToken;
 import utec.kinetica.auth.infrastructure.RefreshTokenRepository;
+import utec.kinetica.support.PostgresContainerSupport;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -19,7 +20,7 @@ import java.time.Instant;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class AuthFlowIntegrationTest {
+class AuthFlowIntegrationTest extends PostgresContainerSupport {
 
     @LocalServerPort
     private int port;
@@ -28,34 +29,38 @@ class AuthFlowIntegrationTest {
     private RefreshTokenRepository refreshTokenRepository;
 
     @Test
-    void loginRefreshLogoutShouldHandleHappyPathAndFailures() throws Exception {
+    void shouldHandleRegisterLoginRefreshAndLogoutWhenFlowIsValid() throws Exception {
+        HttpResponse weakPassword = postJson("/api/v1/auth/register", "{\"email\":\"weak@test.com\",\"password\":\"abcdefg\"}", null);
+        assertTrue(weakPassword.status == 400);
+        assertTrue(weakPassword.body.contains("\"code\":\"VALIDATION_ERROR\""));
+
         String email = "flow-" + System.nanoTime() + "@test.com";
-        String password = "secret-123";
+        String password = "Secret-123!";
 
-        HttpResponse register = postJson("/auth/register", "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}", null);
-        assertTrue(register.status == 200);
+        HttpResponse register = postJson("/api/v1/auth/register", "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}", null);
+        assertTrue(register.status == 201);
 
-        HttpResponse login = postJson("/auth/login", "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}", null);
+        HttpResponse login = postJson("/api/v1/auth/login", "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}", null);
         assertTrue(login.status == 200);
         String accessToken = extractJsonString(login.body, "accessToken");
         String refreshToken = extractJsonString(login.body, "refreshToken");
 
-        HttpResponse refresh = postJson("/auth/refresh", "{\"refreshToken\":\"" + refreshToken + "\"}", null);
+        HttpResponse refresh = postJson("/api/v1/auth/refresh", "{\"refreshToken\":\"" + refreshToken + "\"}", null);
         assertTrue(refresh.status == 200);
         String rotatedRefresh = extractJsonString(refresh.body, "refreshToken");
 
-        HttpResponse logout = postJson("/auth/logout", "{\"refreshToken\":\"" + rotatedRefresh + "\"}", accessToken);
+        HttpResponse logout = postJson("/api/v1/auth/logout", "{\"refreshToken\":\"" + rotatedRefresh + "\"}", accessToken);
         assertTrue(logout.status == 204);
 
-        HttpResponse revokedRefresh = postJson("/auth/refresh", "{\"refreshToken\":\"" + rotatedRefresh + "\"}", null);
-        assertTrue(revokedRefresh.status == 400);
-        assertTrue(revokedRefresh.body.contains("\"code\":\"BAD_REQUEST\""));
+        HttpResponse revokedRefresh = postJson("/api/v1/auth/refresh", "{\"refreshToken\":\"" + rotatedRefresh + "\"}", null);
+        assertTrue(revokedRefresh.status == 401);
+        assertTrue(revokedRefresh.body.contains("\"code\":\"UNAUTHORIZED\""));
 
-        HttpResponse invalidRefresh = postJson("/auth/refresh", "{\"refreshToken\":\"invalid-token-value\"}", null);
-        assertTrue(invalidRefresh.status == 400);
-        assertTrue(invalidRefresh.body.contains("\"code\":\"BAD_REQUEST\""));
+        HttpResponse invalidRefresh = postJson("/api/v1/auth/refresh", "{\"refreshToken\":\"invalid-token-value\"}", null);
+        assertTrue(invalidRefresh.status == 401);
+        assertTrue(invalidRefresh.body.contains("\"code\":\"UNAUTHORIZED\""));
 
-        HttpResponse secondLogin = postJson("/auth/login", "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}", null);
+        HttpResponse secondLogin = postJson("/api/v1/auth/login", "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}", null);
         assertTrue(secondLogin.status == 200);
         String expiringRefresh = extractJsonString(secondLogin.body, "refreshToken");
 
@@ -63,9 +68,9 @@ class AuthFlowIntegrationTest {
         token.setExpiresAt(Instant.now().minusSeconds(60));
         refreshTokenRepository.save(token);
 
-        HttpResponse expiredRefresh = postJson("/auth/refresh", "{\"refreshToken\":\"" + expiringRefresh + "\"}", null);
-        assertTrue(expiredRefresh.status == 400);
-        assertTrue(expiredRefresh.body.contains("\"code\":\"BAD_REQUEST\""));
+        HttpResponse expiredRefresh = postJson("/api/v1/auth/refresh", "{\"refreshToken\":\"" + expiringRefresh + "\"}", null);
+        assertTrue(expiredRefresh.status == 401);
+        assertTrue(expiredRefresh.body.contains("\"code\":\"TOKEN_EXPIRED\""));
     }
 
     private HttpResponse postJson(String path, String body, String bearerToken) throws Exception {

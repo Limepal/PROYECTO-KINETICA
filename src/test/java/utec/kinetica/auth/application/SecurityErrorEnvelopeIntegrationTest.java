@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import utec.kinetica.support.PostgresContainerSupport;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -14,14 +15,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class SecurityErrorEnvelopeIntegrationTest {
+class SecurityErrorEnvelopeIntegrationTest extends PostgresContainerSupport {
 
     @LocalServerPort
     private int port;
 
     @Test
-    void unauthorizedShouldReturnApiErrorEnvelope() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) URI.create("http://localhost:" + port + "/translations").toURL().openConnection();
+    void shouldReturnApiErrorEnvelopeWhenUnauthorizedRequestIsSent() throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) URI.create("http://localhost:" + port + "/api/v1/translations").toURL().openConnection();
         conn.setRequestMethod("GET");
         int status = conn.getResponseCode();
         String body;

@@ -5,13 +5,20 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "outbox_events")
+@Table(
+        name = "outbox_events",
+        indexes = {
+                @Index(name = "idx_outbox_status_next_retry", columnList = "status, next_retry_at"),
+                @Index(name = "idx_outbox_status_retry_count", columnList = "status, retry_count")
+        }
+)
 public class OutboxEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,12 +39,13 @@ public class OutboxEvent {
     @Column(nullable = false)
     private Integer maxRetries;
 
+    @Column(name = "next_retry_at")
     private Instant nextRetryAt;
 
     @Column(columnDefinition = "TEXT")
     private String lastError;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @PrePersist

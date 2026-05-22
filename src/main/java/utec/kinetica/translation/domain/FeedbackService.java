@@ -1,8 +1,10 @@
 package utec.kinetica.translation.domain;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import utec.kinetica.auth.domain.User;
+import utec.kinetica.auth.infrastructure.UserRepository;
+import utec.kinetica.common.domain.exception.ResourceNotFoundException;
 import utec.kinetica.translation.infrastructure.FeedbackRepository;
 import utec.kinetica.translation.infrastructure.TranslationRequestRepository;
 
@@ -10,19 +12,27 @@ import utec.kinetica.translation.infrastructure.TranslationRequestRepository;
 public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final TranslationRequestRepository requestRepository;
+    private final UserRepository userRepository;
 
-    public FeedbackService(FeedbackRepository feedbackRepository, TranslationRequestRepository requestRepository) {
+    public FeedbackService(
+            FeedbackRepository feedbackRepository,
+            TranslationRequestRepository requestRepository,
+            UserRepository userRepository
+    ) {
         this.feedbackRepository = feedbackRepository;
         this.requestRepository = requestRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
     public Feedback create(Long requestId, Long userId, Integer rating, String correctionText) {
-        TranslationRequest request = requestRepository.findByIdAndUserId(requestId, userId)
-                .orElseThrow(() -> new EntityNotFoundException("Translation request not found: " + requestId));
+        TranslationRequest request = requestRepository.findByIdAndUser_Id(requestId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Translation request not found: " + requestId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         Feedback feedback = new Feedback();
         feedback.setRequest(request);
-        feedback.setUserId(userId);
+        feedback.setUser(user);
         feedback.setRating(rating);
         feedback.setCorrectionText(correctionText);
         return feedbackRepository.save(feedback);
@@ -30,19 +40,19 @@ public class FeedbackService {
 
     @Transactional(readOnly = true)
     public java.util.List<Feedback> listByRequest(Long requestId, Long userId) {
-        requestRepository.findByIdAndUserId(requestId, userId)
-                .orElseThrow(() -> new EntityNotFoundException("Translation request not found: " + requestId));
+        requestRepository.findByIdAndUser_Id(requestId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Translation request not found: " + requestId));
         return feedbackRepository.findByRequestId(requestId);
     }
 
     @Transactional(readOnly = true)
     public Feedback getById(Long requestId, Long userId, Long id) {
-        requestRepository.findByIdAndUserId(requestId, userId)
-                .orElseThrow(() -> new EntityNotFoundException("Translation request not found: " + requestId));
+        requestRepository.findByIdAndUser_Id(requestId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Translation request not found: " + requestId));
         Feedback feedback = feedbackRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Feedback not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Feedback not found: " + id));
         if (!feedback.getRequest().getId().equals(requestId)) {
-            throw new EntityNotFoundException("Feedback not found for request: " + requestId);
+            throw new ResourceNotFoundException("Feedback not found for request: " + requestId);
         }
         return feedback;
     }

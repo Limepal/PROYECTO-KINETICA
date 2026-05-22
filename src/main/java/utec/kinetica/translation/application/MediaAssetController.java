@@ -2,6 +2,7 @@ package utec.kinetica.translation.application;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,9 +23,10 @@ import utec.kinetica.translation.domain.MediaAssetKind;
 import utec.kinetica.translation.domain.MediaAssetService;
 
 import java.io.IOException;
+import java.net.URI;
 
 @RestController
-@RequestMapping("/translations/{requestId}/media")
+@RequestMapping("/api/v1/translations/{requestId}/media")
 public class MediaAssetController {
     private final MediaAssetService mediaAssetService;
 
@@ -32,8 +34,8 @@ public class MediaAssetController {
         this.mediaAssetService = mediaAssetService;
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    @PostMapping
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<MediaAssetResponse> create(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long requestId,
@@ -50,21 +52,13 @@ public class MediaAssetController {
                 request.sizeBytes()
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new MediaAssetResponse(
-                media.getId(),
-                media.getRequest().getId(),
-                media.getKind(),
-                media.getStorageUrl(),
-                media.getMimeType(),
-                media.getDurationMs(),
-                media.getSizeBytes(),
-                media.getCreatedAt(),
-                media.getExpiresAt()
-        ));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI.create("/api/v1/translations/" + requestId + "/media/" + media.getId()))
+                .body(toResponse(media));
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    @PostMapping("/upload")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MediaAssetResponse> upload(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long requestId,
@@ -82,24 +76,26 @@ public class MediaAssetController {
                 file.getOriginalFilename(),
                 durationMs
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(media));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI.create("/api/v1/translations/" + requestId + "/media/" + media.getId()))
+                .body(toResponse(media));
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
     @GetMapping
     public ResponseEntity<java.util.List<MediaAssetResponse>> list(@AuthenticationPrincipal Jwt jwt, @PathVariable Long requestId) {
         Long userId = Long.valueOf(jwt.getSubject());
         return ResponseEntity.ok(mediaAssetService.listByRequest(requestId, userId).stream().map(this::toResponse).toList());
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
     @GetMapping("/{mediaId}")
     public ResponseEntity<MediaAssetResponse> getById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long requestId, @PathVariable Long mediaId) {
         Long userId = Long.valueOf(jwt.getSubject());
         return ResponseEntity.ok(toResponse(mediaAssetService.getById(requestId, userId, mediaId)));
     }
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','MANAGER')")
     @DeleteMapping("/{mediaId}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long requestId, @PathVariable Long mediaId) {
         Long userId = Long.valueOf(jwt.getSubject());

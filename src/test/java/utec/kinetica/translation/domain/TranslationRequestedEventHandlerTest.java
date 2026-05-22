@@ -2,6 +2,7 @@ package utec.kinetica.translation.domain;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import utec.kinetica.translation.infrastructure.OutboxEventRepository;
 import utec.kinetica.translation.infrastructure.TranslationRequestRepository;
 import utec.kinetica.translation.infrastructure.TranslationResultRepository;
@@ -19,12 +20,13 @@ import static org.mockito.Mockito.when;
 class TranslationRequestedEventHandlerTest {
 
     @Test
-    void textToSignShouldConvertSpanishToGlossBeforeAi() {
+    void shouldConvertSpanishToGlossBeforeAiWhenDirectionIsTextToSign() {
         TranslationRequestRepository requestRepository = mock(TranslationRequestRepository.class);
         TranslationResultRepository resultRepository = mock(TranslationResultRepository.class);
         OutboxEventRepository outboxEventRepository = mock(OutboxEventRepository.class);
         AiInferenceClient aiInferenceClient = mock(AiInferenceClient.class);
         GlossConversionService glossConversionService = mock(GlossConversionService.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
         TranslationRequest request = new TranslationRequest();
         request.setId(20L);
@@ -45,7 +47,8 @@ class TranslationRequestedEventHandlerTest {
                 resultRepository,
                 outboxEventRepository,
                 aiInferenceClient,
-                glossConversionService
+                glossConversionService,
+                eventPublisher
         );
 
         handler.onTranslationRequested(new TranslationRequestedEvent(20L, 77L));
@@ -58,12 +61,13 @@ class TranslationRequestedEventHandlerTest {
     }
 
     @Test
-    void signToTextShouldNormalizeGlossToNaturalSpanish() {
+    void shouldNormalizeGlossToNaturalSpanishWhenDirectionIsSignToText() {
         TranslationRequestRepository requestRepository = mock(TranslationRequestRepository.class);
         TranslationResultRepository resultRepository = mock(TranslationResultRepository.class);
         OutboxEventRepository outboxEventRepository = mock(OutboxEventRepository.class);
         AiInferenceClient aiInferenceClient = mock(AiInferenceClient.class);
         GlossConversionService glossConversionService = mock(GlossConversionService.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
         TranslationRequest request = new TranslationRequest();
         request.setId(30L);
@@ -84,7 +88,8 @@ class TranslationRequestedEventHandlerTest {
                 resultRepository,
                 outboxEventRepository,
                 aiInferenceClient,
-                glossConversionService
+                glossConversionService,
+                eventPublisher
         );
 
         handler.onTranslationRequested(new TranslationRequestedEvent(30L, 88L));

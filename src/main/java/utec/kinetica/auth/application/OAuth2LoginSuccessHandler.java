@@ -10,8 +10,8 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.util.UriComponentsBuilder;
-import utec.kinetica.auth.application.dto.AuthResponse;
 import utec.kinetica.auth.domain.AuthService;
+import utec.kinetica.auth.domain.AuthTokens;
 
 import java.io.IOException;
 
@@ -48,7 +48,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
-        AuthResponse tokens = authService.loginWithOAuth(email);
+        AuthTokens tokens = authService.loginWithOAuth(email);
 
         boolean secure = request.isSecure();
         response.addHeader("Set-Cookie", buildCookie("kinetica_access_token", tokens.accessToken(), ACCESS_TOKEN_TTL_SECONDS, secure));

@@ -17,7 +17,7 @@ class LocalManagedMediaStorageTest {
     Path tempDir;
 
     @Test
-    void shouldStoreAndDeleteManagedFile() {
+    void shouldStoreAndDeleteManagedFileWhenLifecycleCompletes() {
         LocalManagedMediaStorage storage = new LocalManagedMediaStorage(tempDir.toString());
 
         byte[] content = new byte[]{9, 8, 7, 6};

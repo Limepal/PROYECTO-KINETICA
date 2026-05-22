@@ -18,9 +18,10 @@ import utec.kinetica.auth.domain.Role;
 import utec.kinetica.auth.domain.RoleAdminService;
 
 import java.util.List;
+import java.net.URI;
 
 @RestController
-@RequestMapping("/roles")
+@RequestMapping("/api/v1/roles")
 public class RoleAdminController {
     private final RoleAdminService roleAdminService;
 
@@ -28,36 +29,38 @@ public class RoleAdminController {
         this.roleAdminService = roleAdminService;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @GetMapping
     public ResponseEntity<List<RoleResponse>> list() {
         return ResponseEntity.ok(roleAdminService.list().stream().map(this::toResponse).toList());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @GetMapping("/{id}")
     public ResponseEntity<RoleResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(toResponse(roleAdminService.getById(id)));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping
     public ResponseEntity<RoleResponse> create(@Valid @RequestBody CreateRoleRequest request) {
         Role role = roleAdminService.create(request.name());
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(role));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI.create("/api/v1/roles/" + role.getId()))
+                .body(toResponse(role));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         roleAdminService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/assign")
-    public ResponseEntity<Void> assignRole(@Valid @RequestBody AssignRoleRequest request) {
-        roleAdminService.assignRole(request.userId(), request.roleName());
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PostMapping("/users/{userId}")
+    public ResponseEntity<Void> assignRole(@PathVariable Long userId, @Valid @RequestBody AssignRoleRequest request) {
+        roleAdminService.assignRole(userId, request.roleName());
         return ResponseEntity.noContent().build();
     }
 

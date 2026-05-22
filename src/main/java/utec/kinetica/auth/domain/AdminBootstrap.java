@@ -33,6 +33,13 @@ public class AdminBootstrap {
                     return roleRepository.save(role);
                 });
 
+        roleRepository.findByName(RoleName.MANAGER)
+                .orElseGet(() -> {
+                    Role role = new Role();
+                    role.setName(RoleName.MANAGER);
+                    return roleRepository.save(role);
+                });
+
         if (adminEmail == null || adminEmail.isBlank()) {
             return;
         }

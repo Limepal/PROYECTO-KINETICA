@@ -1,6 +1,7 @@
 package utec.kinetica.auth.domain;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utec.kinetica.auth.infrastructure.RoleRepository;
@@ -22,17 +23,20 @@ public class RoleAdminService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public List<Role> list() {
         return roleRepository.findAll();
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public Role getById(Long id) {
         return roleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found: " + id));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public Role create(String name) {
         Role role = new Role();
         role.setName(RoleName.valueOf(name.toUpperCase()));
@@ -40,12 +44,14 @@ public class RoleAdminService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public void delete(Long id) {
         Role role = getById(id);
         roleRepository.delete(role);
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public void assignRole(Long userId, String roleName) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));

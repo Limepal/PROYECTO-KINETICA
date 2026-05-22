@@ -1,7 +1,7 @@
 package utec.kinetica.sign.domain;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import utec.kinetica.common.domain.exception.ResourceNotFoundException;
 import utec.kinetica.sign.infrastructure.SignRepository;
 
 import java.util.List;
@@ -31,7 +31,7 @@ public class SignService {
 
     public Sign getById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Sign not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Sign not found: " + id));
     }
 
     public Sign update(Long id, String label, String mediaRef, String locale, Boolean active) {

@@ -1,6 +1,7 @@
 package utec.kinetica.translation.domain;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import utec.kinetica.translation.infrastructure.MediaAssetRepository;
 import utec.kinetica.translation.infrastructure.TranslationRequestRepository;
 
@@ -20,19 +21,20 @@ import static org.mockito.Mockito.when;
 class MediaAssetServiceTest {
 
     @Test
-    void shouldCreateManagedMediaAndSetExpiry() {
+    void shouldCreateManagedMediaAndSetExpiryWhenUploadSucceeds() {
         MediaAssetRepository mediaAssetRepository = mock(MediaAssetRepository.class);
         TranslationRequestRepository requestRepository = mock(TranslationRequestRepository.class);
         ManagedMediaStorage managedMediaStorage = mock(ManagedMediaStorage.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
         TranslationRequest request = new TranslationRequest();
         request.setId(10L);
-        when(requestRepository.findByIdAndUserId(10L, 5L)).thenReturn(Optional.of(request));
+        when(requestRepository.findByIdAndUser_Id(10L, 5L)).thenReturn(Optional.of(request));
         when(managedMediaStorage.store(any(), any(), any(), any(), any()))
                 .thenReturn(new StoredMediaFile("media://local/request-10/video/a.mp4", 123L));
         when(mediaAssetRepository.save(any(MediaAsset.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        MediaAssetService service = new MediaAssetService(mediaAssetRepository, requestRepository, managedMediaStorage, 30);
+        MediaAssetService service = new MediaAssetService(mediaAssetRepository, requestRepository, managedMediaStorage, eventPublisher, 30);
 
         MediaAsset created = service.createManagedUpload(
                 10L,
@@ -51,10 +53,11 @@ class MediaAssetServiceTest {
     }
 
     @Test
-    void shouldPurgeExpiredManagedAssets() {
+    void shouldPurgeExpiredManagedAssetsWhenPurgeRuns() {
         MediaAssetRepository mediaAssetRepository = mock(MediaAssetRepository.class);
         TranslationRequestRepository requestRepository = mock(TranslationRequestRepository.class);
         ManagedMediaStorage managedMediaStorage = mock(ManagedMediaStorage.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
         MediaAsset first = new MediaAsset();
         first.setStorageUrl("media://local/request-1/video/one.mp4");
@@ -64,7 +67,7 @@ class MediaAssetServiceTest {
         when(mediaAssetRepository.findTop200ByExpiresAtBeforeOrderByExpiresAtAsc(any(Instant.class)))
                 .thenReturn(List.of(first, second));
 
-        MediaAssetService service = new MediaAssetService(mediaAssetRepository, requestRepository, managedMediaStorage, 30);
+        MediaAssetService service = new MediaAssetService(mediaAssetRepository, requestRepository, managedMediaStorage, eventPublisher, 30);
         int removed = service.purgeExpiredAssets();
 
         assertEquals(2, removed);

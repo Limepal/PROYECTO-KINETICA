@@ -14,10 +14,16 @@ import java.util.List;
 public class OutboxRecoveryScheduler {
     private final OutboxEventRepository outboxEventRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final OutboxPayloadParser outboxPayloadParser;
 
-    public OutboxRecoveryScheduler(OutboxEventRepository outboxEventRepository, ApplicationEventPublisher eventPublisher) {
+    public OutboxRecoveryScheduler(
+            OutboxEventRepository outboxEventRepository,
+            ApplicationEventPublisher eventPublisher,
+            OutboxPayloadParser outboxPayloadParser
+    ) {
         this.outboxEventRepository = outboxEventRepository;
         this.eventPublisher = eventPublisher;
+        this.outboxPayloadParser = outboxPayloadParser;
     }
 
     @Scheduled(fixedDelayString = "${app.outbox.recovery-delay-ms:15000}")
@@ -25,7 +31,7 @@ public class OutboxRecoveryScheduler {
     public void recoverPendingEvents() {
         List<OutboxEvent> pending = outboxEventRepository.findTop50ByStatusOrderByCreatedAtAsc("PENDING");
         for (OutboxEvent event : pending) {
-            Long requestId = extractRequestId(event.getPayload());
+            Long requestId = outboxPayloadParser.extractRequestId(event.getPayload());
             if (requestId == null) {
                 event.setStatus("FAILED");
                 event.setRetryCount(safeIncrement(event.getRetryCount()));
@@ -43,7 +49,7 @@ public class OutboxRecoveryScheduler {
                 PageRequest.of(0, 50)
         );
         for (OutboxEvent event : retryableFailed) {
-            Long requestId = extractRequestId(event.getPayload());
+            Long requestId = outboxPayloadParser.extractRequestId(event.getPayload());
             if (requestId == null) {
                 event.setRetryCount(safeIncrement(event.getRetryCount()));
                 event.setLastError("Invalid outbox payload: missing requestId");
@@ -66,23 +72,4 @@ public class OutboxRecoveryScheduler {
         return Instant.now().plusSeconds(baseDelaySeconds * factor);
     }
 
-    private Long extractRequestId(String payload) {
-        if (payload == null) {
-            return null;
-        }
-        String marker = "\"requestId\":";
-        int idx = payload.indexOf(marker);
-        if (idx < 0) {
-            return null;
-        }
-        int start = idx + marker.length();
-        int end = start;
-        while (end < payload.length() && Character.isDigit(payload.charAt(end))) {
-            end++;
-        }
-        if (start == end) {
-            return null;
-        }
-        return Long.parseLong(payload.substring(start, end));
-    }
 }

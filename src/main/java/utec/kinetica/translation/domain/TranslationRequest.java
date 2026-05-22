@@ -4,39 +4,52 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import utec.kinetica.auth.domain.User;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "translation_requests")
+@Table(
+        name = "translation_requests",
+        indexes = {
+                @Index(name = "idx_translation_requests_user_created", columnList = "user_id, created_at"),
+                @Index(name = "idx_translation_requests_status_created", columnList = "status, created_at")
+        }
+)
 public class TranslationRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TranslationDirection direction;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private TranslationStatus status;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "source_text", columnDefinition = "TEXT")
     private String sourceText;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
     @PrePersist
@@ -52,8 +65,8 @@ public class TranslationRequest {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
     public TranslationDirection getDirection() { return direction; }
     public void setDirection(TranslationDirection direction) { this.direction = direction; }
     public TranslationStatus getStatus() { return status; }

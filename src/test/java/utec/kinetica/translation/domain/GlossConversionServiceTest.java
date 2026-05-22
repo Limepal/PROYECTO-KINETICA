@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 class GlossConversionServiceTest {
 
     @Test
-    void shouldDelegateSpanishToGloss() {
+    void shouldDelegateSpanishToGlossWhenConvertingEsToGloss() {
         GlossConversionClient client = mock(GlossConversionClient.class);
         when(client.spanishToGloss("quiero comer arroz")).thenReturn(
                 new GlossConversionResult("YO QUERER COMER ARROZ", 0.9, List.of(), List.of(), List.of(), "m1")
@@ -25,7 +25,7 @@ class GlossConversionServiceTest {
     }
 
     @Test
-    void shouldDelegateGlossToSpanish() {
+    void shouldDelegateGlossToSpanishWhenConvertingGlossToEs() {
         GlossConversionClient client = mock(GlossConversionClient.class);
         when(client.glossToSpanish("YO QUERER ARROZ")).thenReturn(
                 new GlossConversionResult("Yo quiero arroz.", 0.88, List.of(), List.of(), List.of(), "m1")

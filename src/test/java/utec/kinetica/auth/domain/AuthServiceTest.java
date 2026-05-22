@@ -1,9 +1,8 @@
 package utec.kinetica.auth.domain;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import utec.kinetica.auth.application.dto.AuthResponse;
-import utec.kinetica.auth.application.dto.RefreshRequest;
 import utec.kinetica.auth.infrastructure.RefreshTokenRepository;
 import utec.kinetica.auth.infrastructure.RoleRepository;
 import utec.kinetica.auth.infrastructure.UserRepository;
@@ -22,14 +21,15 @@ import static org.mockito.Mockito.when;
 class AuthServiceTest {
 
     @Test
-    void registerCreatesUserToken() {
+    void shouldCreateUserTokenWhenRegisteringWithValidCredentials() {
         UserRepository userRepository = mock(UserRepository.class);
         RoleRepository roleRepository = mock(RoleRepository.class);
         UserRoleRepository userRoleRepository = mock(UserRoleRepository.class);
         RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         JwtService jwtService = mock(JwtService.class);
-        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        RefreshTokenHasher refreshTokenHasher = mock(RefreshTokenHasher.class);
 
         AuthService service = new AuthService(
                 userRepository,
@@ -38,8 +38,10 @@ class AuthServiceTest {
                 refreshTokenRepository,
                 passwordEncoder,
                 jwtService,
-                registrationNotifier
+                eventPublisher,
+                refreshTokenHasher
         );
+        when(refreshTokenHasher.hash(any(String.class))).thenReturn("hash-token");
 
         when(userRepository.findByEmail("a@b.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("secret")).thenReturn("hash");
@@ -52,23 +54,24 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(saved);
         when(jwtService.generateToken(any(User.class), any())).thenReturn("jwt");
 
-        AuthResponse response = service.register("a@b.com", "secret");
+        AuthTokens response = service.register("a@b.com", "secret");
 
         assertEquals(1L, response.userId());
         assertEquals("jwt", response.accessToken());
         assertEquals("Bearer", response.tokenType());
-        verify(registrationNotifier).notifyWelcome("a@b.com");
+        verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
     }
 
     @Test
-    void registerShouldNotFailWhenWelcomeEmailFails() {
+    void shouldNotFailRegisterWhenWelcomeEmailFails() {
         UserRepository userRepository = mock(UserRepository.class);
         RoleRepository roleRepository = mock(RoleRepository.class);
         UserRoleRepository userRoleRepository = mock(UserRoleRepository.class);
         RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         JwtService jwtService = mock(JwtService.class);
-        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        RefreshTokenHasher refreshTokenHasher = mock(RefreshTokenHasher.class);
 
         AuthService service = new AuthService(
                 userRepository,
@@ -77,8 +80,10 @@ class AuthServiceTest {
                 refreshTokenRepository,
                 passwordEncoder,
                 jwtService,
-                registrationNotifier
+                eventPublisher,
+                refreshTokenHasher
         );
+        when(refreshTokenHasher.hash(any(String.class))).thenReturn("hash-token-2");
 
         when(userRepository.findByEmail("b@c.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("secret")).thenReturn("hash");
@@ -90,23 +95,23 @@ class AuthServiceTest {
         saved.setEmail("b@c.com");
         when(userRepository.save(any(User.class))).thenReturn(saved);
         when(jwtService.generateToken(any(User.class), any())).thenReturn("jwt-2");
-        org.mockito.Mockito.doThrow(new RuntimeException("smtp failed")).when(registrationNotifier).notifyWelcome("b@c.com");
-
-        AuthResponse response = service.register("b@c.com", "secret");
+        AuthTokens response = service.register("b@c.com", "secret");
 
         assertEquals(2L, response.userId());
         assertEquals("jwt-2", response.accessToken());
+        verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
     }
 
     @Test
-    void refreshReturnsNewAccessToken() {
+    void shouldReturnNewAccessTokenWhenRefreshTokenIsValid() {
         UserRepository userRepository = mock(UserRepository.class);
         RoleRepository roleRepository = mock(RoleRepository.class);
         UserRoleRepository userRoleRepository = mock(UserRoleRepository.class);
         RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         JwtService jwtService = mock(JwtService.class);
-        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        RefreshTokenHasher refreshTokenHasher = mock(RefreshTokenHasher.class);
 
         AuthService service = new AuthService(
                 userRepository,
@@ -115,8 +120,10 @@ class AuthServiceTest {
                 refreshTokenRepository,
                 passwordEncoder,
                 jwtService,
-                registrationNotifier
+                eventPublisher,
+                refreshTokenHasher
         );
+        when(refreshTokenHasher.hash(any(String.class))).thenReturn("refresh-hash");
 
         User user = new User();
         user.setId(7L);
@@ -133,21 +140,22 @@ class AuthServiceTest {
         when(userRoleRepository.findByUser_Id(7L)).thenReturn(List.of(userRole));
         when(jwtService.generateToken(any(User.class), any())).thenReturn("new-access");
 
-        AuthResponse response = service.refresh(new RefreshRequest("refresh-raw"));
+        AuthTokens response = service.refresh("refresh-raw");
 
         assertEquals("new-access", response.accessToken());
         assertEquals("Bearer", response.tokenType());
     }
 
     @Test
-    void logoutRevokesRefreshToken() {
+    void shouldRevokeRefreshTokenWhenLogoutIsCalled() {
         UserRepository userRepository = mock(UserRepository.class);
         RoleRepository roleRepository = mock(RoleRepository.class);
         UserRoleRepository userRoleRepository = mock(UserRoleRepository.class);
         RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         JwtService jwtService = mock(JwtService.class);
-        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        RefreshTokenHasher refreshTokenHasher = mock(RefreshTokenHasher.class);
 
         AuthService service = new AuthService(
                 userRepository,
@@ -156,8 +164,10 @@ class AuthServiceTest {
                 refreshTokenRepository,
                 passwordEncoder,
                 jwtService,
-                registrationNotifier
+                eventPublisher,
+                refreshTokenHasher
         );
+        when(refreshTokenHasher.hash(any(String.class))).thenReturn("logout-hash");
 
         RefreshToken token = new RefreshToken();
         when(refreshTokenRepository.findByTokenHash(any(String.class))).thenReturn(Optional.of(token));
@@ -168,14 +178,15 @@ class AuthServiceTest {
     }
 
     @Test
-    void loginWithOAuthShouldCreateUserWhenNotExists() {
+    void shouldCreateUserWhenOAuthLoginAndUserDoesNotExist() {
         UserRepository userRepository = mock(UserRepository.class);
         RoleRepository roleRepository = mock(RoleRepository.class);
         UserRoleRepository userRoleRepository = mock(UserRoleRepository.class);
         RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         JwtService jwtService = mock(JwtService.class);
-        RegistrationNotifier registrationNotifier = mock(RegistrationNotifier.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        RefreshTokenHasher refreshTokenHasher = mock(RefreshTokenHasher.class);
 
         AuthService service = new AuthService(
                 userRepository,
@@ -184,8 +195,10 @@ class AuthServiceTest {
                 refreshTokenRepository,
                 passwordEncoder,
                 jwtService,
-                registrationNotifier
+                eventPublisher,
+                refreshTokenHasher
         );
+        when(refreshTokenHasher.hash(any(String.class))).thenReturn("oauth-hash-token");
 
         when(userRepository.findByEmail("oauth@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any(String.class))).thenReturn("oauth-hash");
@@ -200,7 +213,7 @@ class AuthServiceTest {
         when(jwtService.generateToken(any(User.class), any())).thenReturn("oauth-jwt");
         when(userRoleRepository.findByUser_Id(33L)).thenReturn(List.of());
 
-        AuthResponse response = service.loginWithOAuth("oauth@test.com");
+        AuthTokens response = service.loginWithOAuth("oauth@test.com");
 
         assertEquals(33L, response.userId());
         assertEquals("oauth-jwt", response.accessToken());
