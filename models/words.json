@@ -1,9 +1,8 @@
 {
   "word_ids": [
-        "a-der",
-        "a-izq",
-        "aprender",
-        "que",
+    "b-der",
+    "aprender",
+    "que",
     "buenos-dias",
     "comer"
   ]
