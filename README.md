@@ -134,6 +134,7 @@ Descripción rápida:
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/logout`
+- `GET /oauth2/authorization/google`
 
 #### Users / Roles
 

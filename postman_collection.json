@@ -1,0 +1,358 @@
+{
+  "info": {
+    "_postman_id": "d2f98f9a-f6fd-46ba-9f73-a8d57f649f0f",
+    "name": "KINETICA API - postman_collection",
+    "description": "Colección oficial del backend KINETICA. Incluye todos los endpoints del proyecto, su propósito funcional, variables reutilizables y autorización Bearer/JWT configurada a nivel colección.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('baseUrl')) {",
+          "  pm.collectionVariables.set('baseUrl', 'http://localhost:8080');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Importancia: inicializa la identidad del usuario, obtiene tokens y mantiene sesión segura (register/login/refresh/logout/OAuth2).",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Crea una cuenta de usuario para habilitar autenticación y consumo de endpoints protegidos."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Autentica usuario y guarda automáticamente accessToken y refreshToken en variables de colección."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/refresh",
+            "description": "Renueva sesión sin reingresar credenciales."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/logout",
+            "description": "Revoca token de refresco y cierra sesión de manera segura."
+          }
+        },
+        {
+          "name": "OAuth2 Google Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/oauth2/authorization/google",
+            "description": "Inicia flujo OAuth2 con Google para autenticación federada."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Importancia: administración de cuentas de plataforma (consulta, actualización parcial y eliminación).",
+      "item": [
+        { "name": "List Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/users", "description": "Lista usuarios del sistema." } },
+        { "name": "Get User By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/users/{{userId}}", "description": "Obtiene detalle de un usuario por ID." } },
+        {
+          "name": "Patch User",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"nuevo.{{userEmail}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}",
+            "description": "Actualiza parcialmente datos permitidos del usuario."
+          }
+        },
+        { "name": "Delete User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/users/{{userId}}", "description": "Elimina un usuario del sistema." } }
+      ]
+    },
+    {
+      "name": "Roles",
+      "description": "Importancia: control de autorización basada en roles (RBAC).",
+      "item": [
+        { "name": "List Roles", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/roles", "description": "Lista roles disponibles (USER, ADMIN, MANAGER)." } },
+        { "name": "Get Role By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/roles/{{roleId}}", "description": "Consulta rol específico por ID." } },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"MANAGER\"\n}" },
+            "url": "{{baseUrl}}/api/v1/roles",
+            "description": "Crea un nuevo rol para políticas de acceso futuras."
+          }
+        },
+        { "name": "Delete Role", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/roles/{{roleId}}", "description": "Elimina rol no utilizado." } },
+        {
+          "name": "Assign Role To User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"roleId\": {{roleId}}\n}" },
+            "url": "{{baseUrl}}/api/v1/roles/users/{{userId}}",
+            "description": "Asigna un rol a usuario para habilitar permisos específicos."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Signs",
+      "description": "Importancia: catálogo base de señas consumido por los flujos de traducción.",
+      "item": [
+        { "name": "List Signs", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/signs", "description": "Lista señales registradas." } },
+        {
+          "name": "Create Sign",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"label\": \"HOLA\",\n  \"locale\": \"es-PE\",\n  \"mediaRef\": \"s3://bucket/hola.mp4\",\n  \"active\": true\n}" },
+            "url": "{{baseUrl}}/api/v1/signs",
+            "description": "Crea entrada nueva en catálogo de señas."
+          }
+        },
+        { "name": "Get Sign By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/signs/{{signId}}", "description": "Obtiene una seña por ID." } },
+        {
+          "name": "Update Sign",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"label\": \"HOLA\",\n  \"locale\": \"es-PE\",\n  \"mediaRef\": \"s3://bucket/hola-v2.mp4\",\n  \"active\": true\n}" },
+            "url": "{{baseUrl}}/api/v1/signs/{{signId}}",
+            "description": "Actualiza una seña existente en el catálogo."
+          }
+        },
+        { "name": "Delete Sign", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/signs/{{signId}}", "description": "Elimina seña del catálogo." } }
+      ]
+    },
+    {
+      "name": "Translations",
+      "description": "Importancia: flujo principal del negocio para solicitar y administrar traducciones LSP↔Español.",
+      "item": [
+        {
+          "name": "Create Translation Request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"direction\": \"TEXT_TO_SIGN\",\n  \"sourceText\": \"Necesito ayuda\"\n}" },
+            "url": "{{baseUrl}}/api/v1/translations",
+            "description": "Crea solicitud de traducción que dispara procesamiento de dominio/eventos."
+          }
+        },
+        { "name": "List Translations", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/translations", "description": "Lista solicitudes de traducción del contexto autorizado." } },
+        { "name": "Get Translation By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/translations/{{translationId}}", "description": "Obtiene estado y/o resultado de traducción por ID." } },
+        {
+          "name": "Patch Translation",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sourceText\": \"Necesito ayuda urgente\"\n}" },
+            "url": "{{baseUrl}}/api/v1/translations/{{translationId}}",
+            "description": "Permite corrección parcial de datos editables de la solicitud."
+          }
+        },
+        { "name": "Delete Translation", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/translations/{{translationId}}", "description": "Elimina una solicitud de traducción." } }
+      ]
+    },
+    {
+      "name": "Media Assets",
+      "description": "Importancia: adjunta y administra recursos multimedia vinculados a una traducción.",
+      "item": [
+        {
+          "name": "Create Media Asset (JSON)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"VIDEO\",\n  \"mimeType\": \"video/mp4\",\n  \"storageUrl\": \"s3://bucket/media-1.mp4\",\n  \"sizeBytes\": 204800,\n  \"durationMs\": 3000\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/media",
+            "description": "Registra metadata de media asociada a una traducción."
+          }
+        },
+        {
+          "name": "Upload Media Asset (Multipart)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" },
+                { "key": "kind", "value": "VIDEO", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/media",
+            "description": "Carga archivo binario y lo asocia a la solicitud de traducción."
+          }
+        },
+        { "name": "List Media Assets", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/media", "description": "Lista media assets de una solicitud." } },
+        { "name": "Get Media Asset By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/media/{{mediaId}}", "description": "Consulta media específico de la solicitud." } },
+        { "name": "Delete Media Asset", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/media/{{mediaId}}", "description": "Elimina media asset vinculado a una traducción." } }
+      ]
+    },
+    {
+      "name": "Feedback",
+      "description": "Importancia: captura calidad percibida de traducciones y habilita mejora continua del servicio.",
+      "item": [
+        {
+          "name": "Create Feedback",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"correctionText\": \"La traducción fue buena pero faltó contexto\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/feedback",
+            "description": "Registra retroalimentación del usuario para una traducción."
+          }
+        },
+        { "name": "List Feedback", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/feedback", "description": "Lista feedback asociado a una solicitud." } },
+        { "name": "Get Feedback By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/feedback/{{feedbackId}}", "description": "Obtiene feedback puntual por ID." } },
+        { "name": "Delete Feedback", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/translations/{{requestId}}/feedback/{{feedbackId}}", "description": "Elimina feedback específico." } }
+      ]
+    },
+    {
+      "name": "Conversions",
+      "description": "Importancia: endpoints de transformación lingüística directa para casos de uso rápidos.",
+      "item": [
+        {
+          "name": "Spanish to Gloss",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"Yo quiero arroz\"\n}" },
+            "url": "{{baseUrl}}/api/v1/conversions/es-to-gloss",
+            "description": "Convierte texto en español a glosa de señas."
+          }
+        },
+        {
+          "name": "Gloss to Spanish",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"YO QUERER ARROZ\"\n}" },
+            "url": "{{baseUrl}}/api/v1/conversions/gloss-to-es",
+            "description": "Convierte glosa a texto en español."
+          }
+        }
+      ]
+    },
+    {
+      "name": "KPIs",
+      "description": "Importancia: monitoreo operativo y métricas de salud del módulo de traducciones.",
+      "item": [
+        {
+          "name": "Translations KPI",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kpis/translations?days={{kpiDays}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "kpis", "translations"],
+              "query": [{ "key": "days", "value": "{{kpiDays}}" }]
+            },
+            "description": "Devuelve indicadores agregados para observabilidad funcional."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "userEmail", "value": "demo@kinetica.dev" },
+    { "key": "userPassword", "value": "DemoPass123!" },
+    { "key": "userId", "value": "1" },
+    { "key": "roleId", "value": "1" },
+    { "key": "signId", "value": "1" },
+    { "key": "translationId", "value": "1" },
+    { "key": "requestId", "value": "1" },
+    { "key": "mediaId", "value": "1" },
+    { "key": "feedbackId", "value": "1" },
+    { "key": "kpiDays", "value": "7" }
+  ]
+}
